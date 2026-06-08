@@ -6,8 +6,14 @@ library;
 
 /// User settings.
 class Settings {
-  /// Subtle haptic feedback on clear/win (the tactile substitute for SFX in v1).
+  /// Subtle haptic feedback on clear/win.
   final bool hapticsOn;
+
+  /// Sound effects (clear/win/tap/invalid).
+  final bool sfxOn;
+
+  /// Ambient background pad.
+  final bool musicOn;
 
   /// Colourblind mode: always-visible, higher-contrast state cues.
   final bool colorblind;
@@ -24,6 +30,8 @@ class Settings {
 
   const Settings({
     this.hapticsOn = true,
+    this.sfxOn = true,
+    this.musicOn = true,
     this.colorblind = false,
     this.paletteId = 'clay',
     this.onboardingDone = false,
@@ -32,6 +40,8 @@ class Settings {
 
   Settings copyWith({
     bool? hapticsOn,
+    bool? sfxOn,
+    bool? musicOn,
     bool? colorblind,
     String? paletteId,
     bool? onboardingDone,
@@ -39,6 +49,8 @@ class Settings {
   }) =>
       Settings(
         hapticsOn: hapticsOn ?? this.hapticsOn,
+        sfxOn: sfxOn ?? this.sfxOn,
+        musicOn: musicOn ?? this.musicOn,
         colorblind: colorblind ?? this.colorblind,
         paletteId: paletteId ?? this.paletteId,
         onboardingDone: onboardingDone ?? this.onboardingDone,
@@ -47,6 +59,8 @@ class Settings {
 
   Map<String, dynamic> toMap() => {
         'hapticsOn': hapticsOn,
+        'sfxOn': sfxOn,
+        'musicOn': musicOn,
         'colorblind': colorblind,
         'paletteId': paletteId,
         'onboardingDone': onboardingDone,
@@ -55,6 +69,8 @@ class Settings {
 
   factory Settings.fromMap(Map<String, dynamic> m) => Settings(
         hapticsOn: m['hapticsOn'] as bool? ?? true,
+        sfxOn: m['sfxOn'] as bool? ?? true,
+        musicOn: m['musicOn'] as bool? ?? true,
         colorblind: m['colorblind'] as bool? ?? false,
         paletteId: m['paletteId'] as String? ?? 'clay',
         onboardingDone: m['onboardingDone'] as bool? ?? false,

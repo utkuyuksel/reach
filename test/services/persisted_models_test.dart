@@ -6,6 +6,8 @@ void main() {
     test('Settings (incl. onboarding + owned palettes)', () {
       const s = Settings(
         hapticsOn: false,
+        sfxOn: false,
+        musicOn: false,
         colorblind: true,
         paletteId: 'dusk',
         onboardingDone: true,
@@ -13,6 +15,8 @@ void main() {
       );
       final back = Settings.fromMap(s.toMap());
       expect(back.hapticsOn, false);
+      expect(back.sfxOn, false);
+      expect(back.musicOn, false);
       expect(back.colorblind, true);
       expect(back.paletteId, 'dusk');
       expect(back.onboardingDone, true);

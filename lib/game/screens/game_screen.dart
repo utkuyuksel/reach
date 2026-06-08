@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../engine/solver.dart';
 import '../../services/analytics_service.dart';
+import '../../services/sound_service.dart';
 import '../share_text.dart';
 import '../state/daily_controller.dart';
 import '../state/entitlement_controller.dart';
@@ -36,9 +37,31 @@ class GameScreen extends ConsumerStatefulWidget {
 
 class _GameScreenState extends ConsumerState<GameScreen> {
   bool _adBusy = false;
+  late final SoundService _sound;
+
+  @override
+  void initState() {
+    super.initState();
+    _sound = ref.read(soundServiceProvider);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && ref.read(settingsControllerProvider).musicOn) {
+        _sound.startAmbient();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _sound.stopAmbient();
+    super.dispose();
+  }
 
   void _haptic(VoidCallback fn) {
     if (ref.read(settingsControllerProvider).hapticsOn) fn();
+  }
+
+  void _sfx(void Function(SoundService s) fn) {
+    if (ref.read(settingsControllerProvider).sfxOn) fn(_sound);
   }
 
   /// Returns true if the trace cleared a group (the board uses this to bounce
@@ -51,8 +74,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     if (before == null || after == null) return accepted;
     if (after.isWon && !before.isWon) {
       _haptic(HapticFeedback.heavyImpact);
+      _sfx((s) => s.win());
     } else if (after.found > before.found) {
       _haptic(HapticFeedback.mediumImpact);
+      _sfx((s) => s.clear());
+    } else if (!accepted && path.length >= 2) {
+      _sfx((s) => s.invalid()); // wrong-sum trace
     }
     return accepted;
   }
@@ -152,6 +179,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     // Premium players don't use coins, so the chip is hidden for them.
     final coins = premium ? null : ref.watch(walletControllerProvider);
 
+    // Start/stop the ambient pad when the music setting is toggled.
+    ref.listen(settingsControllerProvider, (prev, next) {
+      if (prev?.musicOn != next.musicOn) {
+        if (next.musicOn) {
+          _sound.startAmbient();
+        } else {
+          _sound.stopAmbient();
+        }
+      }
+    });
+
     if (session == null) {
       return PaperBackground(palette: palette, child: const SizedBox.shrink());
     }
@@ -186,6 +224,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                         colorblind: settings.colorblind,
                         hapticsEnabled: settings.hapticsOn,
                         hintCells: session.hintCells,
+                        onTick: () => _sfx((s) => s.tap()),
                         onSubmitPath: _onSubmit,
                       ),
                     ),

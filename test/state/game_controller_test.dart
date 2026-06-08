@@ -15,6 +15,7 @@ import 'package:reach/services/analytics_service.dart';
 import 'package:reach/services/prefs_storage_service.dart';
 import 'package:reach/services/purchase_service.dart';
 import 'package:reach/services/remote_config_service.dart';
+import 'package:reach/services/sound_service.dart';
 
 /// 2×2, target 4. Partition: [0,1] = 1+3, [2,3] = 3+1.
 Puzzle _puzzle() {
@@ -45,6 +46,7 @@ Future<ProviderContainer> _container() async {
     purchaseServiceProvider.overrideWithValue(DevPurchaseService()),
     analyticsServiceProvider.overrideWithValue(NoopAnalyticsService()),
     remoteConfigServiceProvider.overrideWithValue(LocalRemoteConfigService()),
+    soundServiceProvider.overrideWithValue(NoopSoundService()),
   ]);
 }
 

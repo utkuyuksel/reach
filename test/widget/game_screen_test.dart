@@ -15,6 +15,7 @@ import 'package:reach/services/persisted_models.dart';
 import 'package:reach/services/prefs_storage_service.dart';
 import 'package:reach/services/purchase_service.dart';
 import 'package:reach/services/remote_config_service.dart';
+import 'package:reach/services/sound_service.dart';
 
 /// 2×2, target 4. Tiles keyed by id 0..3 so they're findable despite repeated
 /// values. Partition: [0,1] = 1+3, [2,3] = 3+1.
@@ -49,6 +50,7 @@ Future<ProviderContainer> _pump(WidgetTester tester) async {
     purchaseServiceProvider.overrideWithValue(DevPurchaseService()),
     analyticsServiceProvider.overrideWithValue(NoopAnalyticsService()),
     remoteConfigServiceProvider.overrideWithValue(LocalRemoteConfigService()),
+    soundServiceProvider.overrideWithValue(NoopSoundService()),
   ]);
   container
       .read(gameControllerProvider.notifier)

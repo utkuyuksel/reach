@@ -11,6 +11,8 @@ class SettingsController extends Notifier<Settings> {
   Settings build() => ref.read(storageServiceProvider).loadSettings();
 
   void setHaptics(bool value) => _update(state.copyWith(hapticsOn: value));
+  void setSfx(bool value) => _update(state.copyWith(sfxOn: value));
+  void setMusic(bool value) => _update(state.copyWith(musicOn: value));
   void setColorblind(bool value) => _update(state.copyWith(colorblind: value));
   void setOnboardingDone(bool value) =>
       _update(state.copyWith(onboardingDone: value));

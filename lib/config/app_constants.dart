@@ -26,7 +26,11 @@ library;
 const String kAppName = 'REACH';
 
 /// One-line tagline used on the home screen and share text.
-const String kAppTagline = 'a calm number-merge puzzle';
+const String kAppTagline = 'a calm number puzzle';
+
+/// Marketing version shown in Settings. Keep in step with `pubspec.yaml`'s
+/// `version:` and the matching git tag (e.g. `v1.1`).
+const String kAppVersion = '1.1';
 
 /// Reverse-DNS bundle / package identifier used by the stores.
 ///

@@ -11,6 +11,7 @@ import 'services/google_ad_service.dart';
 import 'services/prefs_storage_service.dart';
 import 'services/purchase_service.dart';
 import 'services/remote_config_service.dart';
+import 'services/sound_service.dart';
 import 'services/storage_service.dart';
 import 'services/store_purchase_service.dart';
 
@@ -45,6 +46,9 @@ Future<void> main() async {
       kUseRealServices ? NoopAnalyticsService() : DebugAnalyticsService();
   await analytics.init();
 
+  final SoundService sound = AudioPlayersSoundService();
+  await sound.init();
+
   runApp(
     ProviderScope(
       overrides: [
@@ -53,6 +57,7 @@ Future<void> main() async {
         purchaseServiceProvider.overrideWithValue(purchase),
         remoteConfigServiceProvider.overrideWithValue(remoteConfig),
         analyticsServiceProvider.overrideWithValue(analytics),
+        soundServiceProvider.overrideWithValue(sound),
       ],
       child: const ReachApp(),
     ),

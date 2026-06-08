@@ -1,7 +1,7 @@
 /// An immutable number tile occupying a single grid cell.
 ///
-/// [id] is a stable identity used by the UI to track a tile across fuses
-/// (for keyed animations). [value] is the positive integer shown on the tile.
+/// [id] is a stable identity used by the UI to track a tile across board
+/// changes (for keyed animations). [value] is the positive integer shown on it.
 ///
 /// Pure Dart — no Flutter imports.
 class Tile {

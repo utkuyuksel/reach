@@ -12,11 +12,15 @@ class CoinChip extends StatelessWidget {
   final GamePalette palette;
   final VoidCallback? onTap;
 
+  /// Briefly tints the chip red — used to signal "not enough coins".
+  final bool flash;
+
   const CoinChip({
     super.key,
     required this.coins,
     required this.palette,
     this.onTap,
+    this.flash = false,
   });
 
   @override
@@ -24,12 +28,15 @@ class CoinChip extends StatelessWidget {
     return Pressable(
       onTap: onTap,
       depth: 1,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: palette.tile,
+          color: flash
+              ? Color.lerp(palette.tile, palette.over, 0.35)
+              : palette.tile,
           borderRadius: BorderRadius.circular(11),
-          border: Border.all(color: palette.line),
+          border: Border.all(color: flash ? palette.over : palette.line),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

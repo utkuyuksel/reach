@@ -4,6 +4,7 @@ import '../../services/ad_service.dart';
 import '../../services/analytics_service.dart';
 import '../../services/purchase_service.dart';
 import '../../services/remote_config_service.dart';
+import '../../services/sound_service.dart';
 import '../../services/storage_service.dart';
 import '../theme/palette.dart';
 import 'entitlement_controller.dart';
@@ -30,6 +31,10 @@ final analyticsServiceProvider = Provider<AnalyticsService>(
 final remoteConfigServiceProvider = Provider<RemoteConfigService>(
   (ref) =>
       throw UnimplementedError('Override remoteConfigServiceProvider in main()'),
+);
+
+final soundServiceProvider = Provider<SoundService>(
+  (ref) => throw UnimplementedError('Override soundServiceProvider in main()'),
 );
 
 /// The active tunable game configuration (economy, ads, stars).

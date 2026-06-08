@@ -6,8 +6,10 @@ import '../theme/palette.dart';
 enum TileState { normal, path, match, hint, reject }
 
 /// A single soft, tactile number tile. Pure visual — the board owns the drag
-/// gesture. State is shown by colour AND shape/motion (path tiles lift; a
-/// match-ready trace adds a ✓; a hint adds a ring) so it stays colourblind-safe.
+/// gesture. State is shown by colour AND shape/motion so it stays colourblind-
+/// safe by default: path tiles lift, a match-ready trace always carries a ✓,
+/// and a hint adds a ring. The [colorblind] setting makes the ✓ more prominent
+/// and adds an ✕ to rejected traces (the warning state, otherwise colour-only).
 class TileWidget extends StatelessWidget {
   final int value;
   final TileState state;
@@ -61,11 +63,25 @@ class TileWidget extends StatelessWidget {
               ),
             ),
           ),
-          if (state == TileState.match && colorblind)
+          // Match-ready: a ✓ so validity reads without relying on colour.
+          // Always shown; the colourblind setting makes it more prominent.
+          if (state == TileState.match)
             Positioned(
               top: 5,
               right: 6,
-              child: Icon(Icons.check_rounded, size: 14, color: Colors.white),
+              child: Icon(
+                Icons.check_rounded,
+                size: colorblind ? 17 : 13,
+                color: Colors.white,
+              ),
+            ),
+          // Colourblind aid: mark the rejected/over state too — otherwise it is
+          // distinguished from a normal tile only by its warning colour.
+          if (state == TileState.reject && colorblind)
+            Positioned(
+              top: 5,
+              right: 6,
+              child: Icon(Icons.close_rounded, size: 17, color: palette.over),
             ),
         ],
       ),

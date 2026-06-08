@@ -4,11 +4,11 @@ import 'package:flutter/widgets.dart';
 /// the prototype's terracotta-on-paper look. Additional palettes are cosmetic
 /// and unlock with Premium.
 ///
-/// State colours (selected / overshoot / hit) are part of the palette, but the
+/// State colours (selected / rejected / match) are part of the palette, but the
 /// UI never relies on colour ALONE to convey state — it also lifts the tile
-/// (selected), and draws an icon badge (overshoot, hit) — so the game stays
-/// colourblind-safe. The Settings "colourblind" toggle makes those badges
-/// always-visible and higher-contrast.
+/// (selected) and draws an icon badge (✓ on a match) — so the game stays
+/// colourblind-safe. The Settings "colourblind" toggle makes the ✓ more
+/// prominent and adds an ✕ to rejected traces.
 @immutable
 class GamePalette {
   final String id;
@@ -35,12 +35,12 @@ class GamePalette {
   final Color tileHi; // bottom of the tile's vertical gradient
   final Color tileEdge;
 
-  // Win ("hit") — deliberately distinct from [accent] so a hit never reads
-  // like a selection.
+  // Match — deliberately distinct from [accent] so a match-ready trace never
+  // reads like an in-progress selection.
   final Color good;
   final Color goodDeep;
 
-  // Overshoot
+  // Rejected / "wrong" trace
   final Color over;
 
   final Color line;

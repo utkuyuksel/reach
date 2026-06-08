@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/iap_config.dart';
@@ -13,6 +14,7 @@ import '../widgets/coin_chip.dart';
 import '../widgets/paper_background.dart';
 import '../widgets/pressable.dart';
 import '../widgets/soft_button.dart';
+import '../widgets/tile_widget.dart';
 
 /// The shop: earn/buy coins, unlock Premium, and unlock cosmetic themes with
 /// coins. Coins have two sinks (hints + themes), giving a reason to keep them.
@@ -25,6 +27,7 @@ class ShopScreen extends ConsumerStatefulWidget {
 
 class _ShopScreenState extends ConsumerState<ShopScreen> {
   bool _adBusy = false;
+  bool _flashCoins = false;
 
   void _toast(String msg, GamePalette palette) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -52,13 +55,35 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
 
   void _selectOrBuyTheme(GamePalette p, bool premium, GamePalette palette) {
     final ctrl = ref.read(settingsControllerProvider.notifier);
+    final haptics = ref.read(settingsControllerProvider).hapticsOn;
     if (ctrl.isUnlocked(p, premium: premium)) {
       ctrl.setPalette(p.id);
+      if (haptics) HapticFeedback.selectionClick();
       return;
     }
     // Locked → buy with coins.
-    if (ctrl.buyPalette(p)) return;
+    if (ctrl.buyPalette(p)) {
+      if (haptics) HapticFeedback.lightImpact();
+      return;
+    }
+    // Not enough coins → flash the balance + gentle toast.
+    setState(() => _flashCoins = true);
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) setState(() => _flashCoins = false);
+    });
     _toast('Not enough coins for ${p.name}.', palette);
+  }
+
+  void _previewTheme(GamePalette p, GamePalette chrome) {
+    showDialog<void>(
+      context: context,
+      barrierColor: chrome.ink.withValues(alpha: 0.35),
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: _ThemePreview(palette: p),
+      ),
+    );
   }
 
   @override
@@ -90,7 +115,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                         style: AppText.fraunces(
                             size: 28, weight: 600, color: palette.ink)),
                     const Spacer(),
-                    CoinChip(coins: coins, palette: palette),
+                    CoinChip(coins: coins, palette: palette, flash: _flashCoins),
                   ],
                 ),
               ),
@@ -156,6 +181,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                                 .read(settingsControllerProvider.notifier)
                                 .isUnlocked(p, premium: premium),
                             onTap: () => _selectOrBuyTheme(p, premium, palette),
+                            onLongPress: () => _previewTheme(p, palette),
                           ),
                       ],
                     ),
@@ -321,6 +347,7 @@ class _ThemeTile extends StatelessWidget {
   final bool selected;
   final bool unlocked;
   final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   const _ThemeTile({
     required this.palette,
@@ -328,14 +355,17 @@ class _ThemeTile extends StatelessWidget {
     required this.selected,
     required this.unlocked,
     required this.onTap,
+    required this.onLongPress,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Pressable(
-      onTap: onTap,
-      depth: 1.5,
-      child: Container(
+    return GestureDetector(
+      onLongPress: onLongPress,
+      child: Pressable(
+        onTap: onTap,
+        depth: 1.5,
+        child: Container(
         width: 92,
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
@@ -383,6 +413,68 @@ class _ThemeTile extends StatelessWidget {
               ),
           ],
         ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A small preview of how the board looks in a given palette (long-press a
+/// theme). Shows a 3×3 of tiles, one in the "match" colour.
+class _ThemePreview extends StatelessWidget {
+  final GamePalette palette;
+  const _ThemePreview({required this.palette});
+
+  @override
+  Widget build(BuildContext context) {
+    const values = [
+      [3, 5, 2],
+      [4, 1, 6],
+      [5, 2, 3],
+    ];
+    const size = 52.0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
+      decoration: BoxDecoration(
+        color: palette.paper,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: palette.shadow,
+            blurRadius: 30,
+            offset: const Offset(0, 16),
+            spreadRadius: -8,
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(palette.name,
+              style: AppText.fraunces(size: 24, weight: 600, color: palette.ink)),
+          const SizedBox(height: 16),
+          for (var r = 0; r < 3; r++)
+            Padding(
+              padding: EdgeInsets.only(bottom: r == 2 ? 0 : 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var c = 0; c < 3; c++)
+                    Padding(
+                      padding: EdgeInsets.only(right: c == 2 ? 0 : 8),
+                      child: TileWidget(
+                        value: values[r][c],
+                        state: (r == 1 && c == 1)
+                            ? TileState.match
+                            : TileState.normal,
+                        palette: palette,
+                        size: size,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

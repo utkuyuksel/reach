@@ -52,6 +52,20 @@ class SettingsScreen extends ConsumerWidget {
                     _SectionLabel(palette: palette, text: 'FEEL'),
                     _ToggleRow(
                       palette: palette,
+                      icon: Icons.graphic_eq_rounded,
+                      label: 'Sound effects',
+                      value: settings.sfxOn,
+                      onChanged: settingsCtrl.setSfx,
+                    ),
+                    _ToggleRow(
+                      palette: palette,
+                      icon: Icons.music_note_rounded,
+                      label: 'Music',
+                      value: settings.musicOn,
+                      onChanged: settingsCtrl.setMusic,
+                    ),
+                    _ToggleRow(
+                      palette: palette,
                       icon: Icons.vibration_rounded,
                       label: 'Haptics',
                       value: settings.hapticsOn,
@@ -86,7 +100,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 18),
                     Center(
-                      child: Text('$kAppName · v1',
+                      child: Text('$kAppName · v$kAppVersion',
                           style: AppText.mono(
                               size: 10.5,
                               color: palette.inkSoft,

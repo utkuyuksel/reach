@@ -18,6 +18,9 @@ class BoardWidget extends StatefulWidget {
   final bool hapticsEnabled;
   final List<int> hintCells;
 
+  /// Called when a tile joins the trace (for a soft tick sound).
+  final VoidCallback? onTick;
+
   /// Submit a traced path; returns true if it cleared a group. A false return
   /// (wrong sum, or a board-stranding move) triggers a gentle bounce.
   final bool Function(List<int> path) onSubmitPath;
@@ -31,6 +34,7 @@ class BoardWidget extends StatefulWidget {
     this.colorblind = false,
     this.hapticsEnabled = true,
     this.hintCells = const [],
+    this.onTick,
   });
 
   @override
@@ -111,6 +115,7 @@ class _BoardWidgetState extends State<BoardWidget> {
 
   void _tick() {
     if (widget.hapticsEnabled) HapticFeedback.selectionClick();
+    widget.onTick?.call();
   }
 
   TileState _stateFor(int index) {

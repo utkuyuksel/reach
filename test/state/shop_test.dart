@@ -10,6 +10,7 @@ import 'package:reach/services/analytics_service.dart';
 import 'package:reach/services/prefs_storage_service.dart';
 import 'package:reach/services/purchase_service.dart';
 import 'package:reach/services/remote_config_service.dart';
+import 'package:reach/services/sound_service.dart';
 
 Future<ProviderContainer> _container() async {
   final storage = InMemoryStorageService();
@@ -20,6 +21,7 @@ Future<ProviderContainer> _container() async {
     purchaseServiceProvider.overrideWithValue(DevPurchaseService()),
     analyticsServiceProvider.overrideWithValue(NoopAnalyticsService()),
     remoteConfigServiceProvider.overrideWithValue(LocalRemoteConfigService()),
+    soundServiceProvider.overrideWithValue(NoopSoundService()),
   ]);
 }
 
