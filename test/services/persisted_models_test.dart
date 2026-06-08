@@ -3,18 +3,20 @@ import 'package:reach/services/persisted_models.dart';
 
 void main() {
   group('round-trips', () {
-    test('Settings (incl. onboarding)', () {
+    test('Settings (incl. onboarding + owned palettes)', () {
       const s = Settings(
         hapticsOn: false,
         colorblind: true,
         paletteId: 'dusk',
         onboardingDone: true,
+        ownedPaletteIds: ['sage', 'dusk'],
       );
       final back = Settings.fromMap(s.toMap());
       expect(back.hapticsOn, false);
       expect(back.colorblind, true);
       expect(back.paletteId, 'dusk');
       expect(back.onboardingDone, true);
+      expect(back.ownedPaletteIds, ['sage', 'dusk']);
     });
 
     test('ZenRecord', () {

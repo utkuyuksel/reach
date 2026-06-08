@@ -13,7 +13,9 @@ import 'package:flutter/widgets.dart';
 class GamePalette {
   final String id;
   final String name;
-  final bool premium;
+
+  /// Coins to unlock this palette (0 = free). Premium unlocks all paid palettes.
+  final int coinPrice;
 
   // Surfaces
   final Color paper; // background base
@@ -47,7 +49,7 @@ class GamePalette {
   const GamePalette({
     required this.id,
     required this.name,
-    required this.premium,
+    this.coinPrice = 0,
     required this.paper,
     required this.paperHi,
     required this.paperLo,
@@ -65,10 +67,13 @@ class GamePalette {
     required this.shadow,
   });
 
+  /// Free palettes (the default) need no unlock.
+  bool get isFree => coinPrice == 0;
+
   static const GamePalette clay = GamePalette(
     id: 'clay',
     name: 'Clay',
-    premium: false,
+    coinPrice: 0,
     paper: Color(0xFFF5EFE2),
     paperHi: Color(0xFFFAF5EA),
     paperLo: Color(0xFFEFE7D6),
@@ -89,7 +94,7 @@ class GamePalette {
   static const GamePalette sage = GamePalette(
     id: 'sage',
     name: 'Sage',
-    premium: true,
+    coinPrice: 150,
     paper: Color(0xFFEEF1E7),
     paperHi: Color(0xFFF4F6EE),
     paperLo: Color(0xFFE3E8D7),
@@ -110,7 +115,7 @@ class GamePalette {
   static const GamePalette dusk = GamePalette(
     id: 'dusk',
     name: 'Dusk',
-    premium: true,
+    coinPrice: 250,
     paper: Color(0xFFE9E6F0),
     paperHi: Color(0xFFF1EFF7),
     paperLo: Color(0xFFDED9EC),
@@ -131,7 +136,7 @@ class GamePalette {
   static const GamePalette noir = GamePalette(
     id: 'ink',
     name: 'Ink',
-    premium: true,
+    coinPrice: 400,
     paper: Color(0xFFECEBE6),
     paperHi: Color(0xFFF4F3EF),
     paperLo: Color(0xFFE0DFD8),

@@ -37,12 +37,14 @@ final gameConfigProvider = Provider<GameConfig>(
   (ref) => ref.watch(remoteConfigServiceProvider).config,
 );
 
-/// The palette to render with: the user's selection if they're entitled to it
-/// (Premium-only palettes require Premium), otherwise the free default.
+/// The palette to render with: the user's selection if it's unlocked (free,
+/// owned with coins, or Premium), otherwise the free default.
 final paletteProvider = Provider<GamePalette>((ref) {
   final settings = ref.watch(settingsControllerProvider);
   final premium = ref.watch(entitlementControllerProvider);
   final selected = GamePalette.byId(settings.paletteId);
-  if (selected.premium && !premium) return GamePalette.clay;
-  return selected;
+  final unlocked = selected.isFree ||
+      premium ||
+      settings.ownedPaletteIds.contains(selected.id);
+  return unlocked ? selected : GamePalette.clay;
 });

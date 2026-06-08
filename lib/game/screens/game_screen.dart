@@ -24,6 +24,7 @@ import '../widgets/paper_background.dart';
 import '../widgets/soft_button.dart';
 import '../widgets/target_display.dart';
 import '../widgets/win_sheet.dart';
+import 'shop_screen.dart';
 
 /// The core gameplay screen, driven by [gameControllerProvider].
 class GameScreen extends ConsumerStatefulWidget {
@@ -312,7 +313,13 @@ class _TopBar extends StatelessWidget {
           ),
           const Spacer(),
           if (coins != null) ...[
-            CoinChip(coins: coins!, palette: palette),
+            CoinChip(
+              coins: coins!,
+              palette: palette,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ShopScreen()),
+              ),
+            ),
             const SizedBox(width: 8),
           ],
           Container(

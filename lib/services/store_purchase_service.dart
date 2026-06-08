@@ -9,22 +9,19 @@ import 'purchase_service.dart';
 /// app is built with real services enabled (see `service_config.dart`).
 class StorePurchaseService implements PurchaseService {
   final InAppPurchase _iap = InAppPurchase.instance;
-  final _controller = StreamController<bool>.broadcast();
+  final _controller = StreamController<String>.broadcast();
   StreamSubscription<List<PurchaseDetails>>? _sub;
+  final Map<String, ProductDetails> _products = {};
   bool _available = false;
-  String? _price;
 
   @override
   Future<void> init() async {
     _available = await _iap.isAvailable();
     if (!_available) return;
-    _sub = _iap.purchaseStream.listen(
-      _onPurchases,
-      onError: (_) {},
-    );
+    _sub = _iap.purchaseStream.listen(_onPurchases, onError: (_) {});
     final resp = await _iap.queryProductDetails(IapConfig.productIds);
-    if (resp.productDetails.isNotEmpty) {
-      _price = resp.productDetails.first.price;
+    for (final p in resp.productDetails) {
+      _products[p.id] = p;
     }
   }
 
@@ -32,34 +29,29 @@ class StorePurchaseService implements PurchaseService {
   bool get isAvailable => _available;
 
   @override
-  String? get premiumPrice => _price;
+  String? priceFor(String productId) => _products[productId]?.price;
 
   @override
-  Future<void> buyPremium() async {
-    final resp = await _iap.queryProductDetails(IapConfig.productIds);
-    if (resp.productDetails.isEmpty) return;
-    final product = resp.productDetails.firstWhere(
-      (p) => p.id == IapConfig.premiumProductId,
-      orElse: () => resp.productDetails.first,
-    );
-    await _iap.buyNonConsumable(
-      purchaseParam: PurchaseParam(productDetails: product),
-    );
+  Future<void> buy(String productId) async {
+    final product = _products[productId];
+    if (product == null) return;
+    final param = PurchaseParam(productDetails: product);
+    if (IapConfig.isCoinPack(productId)) {
+      await _iap.buyConsumable(purchaseParam: param); // auto-consumed
+    } else {
+      await _iap.buyNonConsumable(purchaseParam: param);
+    }
   }
 
   @override
-  Future<void> restore() async {
-    await _iap.restorePurchases();
-  }
+  Future<void> restore() async => _iap.restorePurchases();
 
   void _onPurchases(List<PurchaseDetails> purchases) {
     for (final p in purchases) {
-      if (p.productID == IapConfig.premiumProductId &&
-          (p.status == PurchaseStatus.purchased ||
-              p.status == PurchaseStatus.restored)) {
-        _controller.add(true);
+      if (p.status == PurchaseStatus.purchased ||
+          p.status == PurchaseStatus.restored) {
+        _controller.add(p.productID);
       }
-      // Always finish transactions the store asks us to complete.
       if (p.pendingCompletePurchase) {
         _iap.completePurchase(p);
       }
@@ -67,7 +59,7 @@ class StorePurchaseService implements PurchaseService {
   }
 
   @override
-  Stream<bool> get premiumStream => _controller.stream;
+  Stream<String> get purchases => _controller.stream;
 
   @override
   void dispose() {

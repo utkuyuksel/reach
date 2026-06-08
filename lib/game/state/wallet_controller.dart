@@ -1,27 +1,51 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../config/iap_config.dart';
 import '../../services/analytics_service.dart';
 import '../../services/persisted_models.dart';
 import 'providers.dart';
 
-/// Holds the coin balance. On first ever launch the wallet is seeded with the
-/// configured starting coins (granted once). Coins are spent on hints and
-/// earned from clears, rewarded ads, and (later) IAP packs.
+/// Holds the coin balance. Seeded with the configured starting coins on first
+/// launch (granted once). Coins are spent on hints and cosmetic themes, and
+/// earned from clears, rewarded ads, and IAP coin packs.
 class WalletController extends Notifier<int> {
+  StreamSubscription<String>? _sub;
+
   @override
   int build() {
     final storage = ref.read(storageServiceProvider);
+
+    // Grant coins when a coin-pack purchase confirms.
+    _sub = ref.read(purchaseServiceProvider).purchases.listen((productId) {
+      if (IapConfig.isCoinPack(productId)) {
+        earn(IapConfig.coinsFor(productId), reason: 'iap');
+        ref.read(analyticsServiceProvider).log(AnalyticsEvents.purchase, {
+          'product': productId,
+          'coins': IapConfig.coinsFor(productId),
+        });
+      }
+    });
+    ref.onDispose(() => _sub?.cancel());
+
     final existing = storage.loadWallet();
     if (existing != null) return existing.coins;
-    // First launch — grant starting coins once.
     final start = ref.read(gameConfigProvider).startingCoins;
     storage.saveWallet(WalletRecord(coins: start));
     return start;
   }
 
   int get coins => state;
-
   bool canAfford(int amount) => state >= amount;
+
+  /// Localized price for a coin pack.
+  String? priceFor(String productId) =>
+      ref.read(purchaseServiceProvider).priceFor(productId);
+
+  /// Begin a coin-pack purchase (coins granted via the purchases stream).
+  Future<void> buyPack(String productId) =>
+      ref.read(purchaseServiceProvider).buy(productId);
 
   void earn(int amount, {String reason = ''}) {
     if (amount <= 0) return;

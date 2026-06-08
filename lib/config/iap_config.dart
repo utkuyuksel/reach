@@ -1,16 +1,36 @@
 /// In-app purchase configuration in ONE place.
 ///
-/// REACH has a single non-consumable "Premium" product (~US$3.99) that removes
-/// ads, unlocks unlimited hints, and unlocks cosmetic themes.
+/// Products:
+///   * a single non-consumable **Premium** (~US$3.99) — removes ads, unlimited
+///     hints, unlocks all cosmetic themes;
+///   * **consumable coin packs** — grant coins (spent on hints and cosmetics).
 ///
-/// TODO: create this product in App Store Connect and Google Play Console with
-///       the SAME product ID, then replace the placeholder below. See README →
-///       "Ads & IAP setup". Price is configured in the store consoles, not here.
+/// TODO: create these products in App Store Connect and Google Play Console
+///       with the SAME IDs, then replace the placeholders. Prices are set in
+///       the store consoles. See README → "Ads & IAP setup".
 class IapConfig {
-  /// Store product ID for the one-time Premium unlock. Placeholder — must match
-  /// the product you create in both stores.
+  /// Non-consumable Premium unlock.
   static const String premiumProductId = 'com.reach.reach.premium';
 
-  /// All product IDs the app queries on launch.
-  static const Set<String> productIds = {premiumProductId};
+  /// Consumable coin packs: product id → coins granted.
+  static const Map<String, int> coinPacks = {
+    'com.reach.reach.coins_small': 250,
+    'com.reach.reach.coins_medium': 700,
+    'com.reach.reach.coins_large': 2000,
+  };
+
+  /// Coin packs in display order.
+  static const List<String> coinPackOrder = [
+    'com.reach.reach.coins_small',
+    'com.reach.reach.coins_medium',
+    'com.reach.reach.coins_large',
+  ];
+
+  /// All product IDs queried on launch.
+  static Set<String> get productIds => {premiumProductId, ...coinPacks.keys};
+
+  static bool isCoinPack(String productId) => coinPacks.containsKey(productId);
+
+  /// Coins granted by [productId] (0 if it isn't a coin pack).
+  static int coinsFor(String productId) => coinPacks[productId] ?? 0;
 }

@@ -19,11 +19,15 @@ class Settings {
   /// Whether the player has seen the first-run tutorial.
   final bool onboardingDone;
 
+  /// Palette ids unlocked with coins (Premium unlocks all regardless).
+  final List<String> ownedPaletteIds;
+
   const Settings({
     this.hapticsOn = true,
     this.colorblind = false,
     this.paletteId = 'clay',
     this.onboardingDone = false,
+    this.ownedPaletteIds = const [],
   });
 
   Settings copyWith({
@@ -31,12 +35,14 @@ class Settings {
     bool? colorblind,
     String? paletteId,
     bool? onboardingDone,
+    List<String>? ownedPaletteIds,
   }) =>
       Settings(
         hapticsOn: hapticsOn ?? this.hapticsOn,
         colorblind: colorblind ?? this.colorblind,
         paletteId: paletteId ?? this.paletteId,
         onboardingDone: onboardingDone ?? this.onboardingDone,
+        ownedPaletteIds: ownedPaletteIds ?? this.ownedPaletteIds,
       );
 
   Map<String, dynamic> toMap() => {
@@ -44,6 +50,7 @@ class Settings {
         'colorblind': colorblind,
         'paletteId': paletteId,
         'onboardingDone': onboardingDone,
+        'ownedPaletteIds': ownedPaletteIds,
       };
 
   factory Settings.fromMap(Map<String, dynamic> m) => Settings(
@@ -51,6 +58,8 @@ class Settings {
         colorblind: m['colorblind'] as bool? ?? false,
         paletteId: m['paletteId'] as String? ?? 'clay',
         onboardingDone: m['onboardingDone'] as bool? ?? false,
+        ownedPaletteIds:
+            (m['ownedPaletteIds'] as List?)?.cast<String>() ?? const [],
       );
 }
 

@@ -1,37 +1,50 @@
 import 'dart:async';
 
+import '../config/iap_config.dart';
+
 /// In-app purchases behind an interface so the game runs without store accounts
 /// (via [DevPurchaseService]) and so purchase logic can be mocked in tests.
 ///
-/// There is a single non-consumable "Premium" product. Premium removes ads,
-/// grants unlimited hints, and unlocks cosmetic palettes. Entitlement changes
-/// are delivered on [premiumStream]; call [restore] on launch to re-verify.
+/// Handles both the non-consumable Premium unlock and consumable coin packs.
+/// Confirmed purchases/restores are delivered on [purchases] as product IDs;
+/// the entitlement controller listens for the Premium id and the wallet
+/// listens for coin-pack ids.
 abstract class PurchaseService {
   Future<void> init();
 
   /// Whether the store is reachable (false ⇒ hide buy/restore UI gracefully).
   bool get isAvailable;
 
-  /// Localized price string for Premium, or `null` if unknown.
-  String? get premiumPrice;
+  /// Localized price string for [productId], or null if unknown.
+  String? priceFor(String productId);
 
-  /// Begin a purchase flow. The outcome arrives on [premiumStream].
-  Future<void> buyPremium();
+  /// Begin a purchase flow for [productId] (Premium or a coin pack). The
+  /// outcome arrives on [purchases].
+  Future<void> buy(String productId);
 
-  /// Re-verify past purchases. Confirmed entitlements arrive on [premiumStream].
+  /// Re-verify past (non-consumable) purchases. Confirmations arrive on
+  /// [purchases].
   Future<void> restore();
 
-  /// Emits `true` whenever Premium ownership is confirmed (purchased/restored).
-  Stream<bool> get premiumStream;
+  /// Emits a product id whenever a purchase/restore is confirmed.
+  Stream<String> get purchases;
 
   void dispose();
 }
 
-/// No-op implementation for development and tests. "Buying" simply flips the
-/// entitlement so the full Premium experience is exercisable without a store.
+/// No-op implementation for development and tests. "Buying" simply emits the
+/// product id so the full flow (premium unlock / coin grant) is exercisable
+/// without a store.
 class DevPurchaseService implements PurchaseService {
-  final _controller = StreamController<bool>.broadcast();
-  bool _premium = false;
+  final _controller = StreamController<String>.broadcast();
+  final Set<String> _ownedNonConsumables = {};
+
+  static const _devPrices = {
+    IapConfig.premiumProductId: r'$3.99',
+    'com.reach.reach.coins_small': r'$0.99',
+    'com.reach.reach.coins_medium': r'$2.99',
+    'com.reach.reach.coins_large': r'$6.99',
+  };
 
   @override
   Future<void> init() async {}
@@ -40,24 +53,26 @@ class DevPurchaseService implements PurchaseService {
   bool get isAvailable => true;
 
   @override
-  String? get premiumPrice => r'$3.99';
+  String? priceFor(String productId) => _devPrices[productId];
 
   @override
-  Future<void> buyPremium() async {
-    _premium = true;
-    _controller.add(true);
+  Future<void> buy(String productId) async {
+    if (!IapConfig.isCoinPack(productId)) {
+      _ownedNonConsumables.add(productId);
+    }
+    _controller.add(productId);
   }
 
   @override
   Future<void> restore() async {
-    _controller.add(_premium);
+    for (final id in _ownedNonConsumables) {
+      _controller.add(id);
+    }
   }
 
   @override
-  Stream<bool> get premiumStream => _controller.stream;
+  Stream<String> get purchases => _controller.stream;
 
   @override
-  void dispose() {
-    _controller.close();
-  }
+  void dispose() => _controller.close();
 }
