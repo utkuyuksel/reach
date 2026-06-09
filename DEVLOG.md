@@ -162,7 +162,7 @@ test/             engine (stress + solver + game_state + generator), state (cont
 
 **Yapılacaklar (Gemini'den süzülenler dahil):**
 1. ~~Firebase'i bağla~~ ✅ **Bağlandı (v1.6)** — kod + init hazır, iOS sim'de doğrulandı. Kalan: kullanıcı Google Analytics'i açacak (DebugView için). Remote-config backend opsiyonel.
-2. **Landing page** (kullanıcı isteği) — SEO + CTA hedefi; domain sonra. Hazır olunca `kShareUrl`'e gir.
+2. ~~Landing page~~ ✅ **Kodlandı** (`landing/`): statik, tek-dosya, SEO-odaklı (title/description/OG/Twitter/JSON-LD + robots + sitemap), marka-içi (paper/terracotta, Fraunces). `privacy.html` taslağı (ads/IAP/analytics gerçeğine göre — yayın öncesi gözden geçir). Kalan: domain al + `reachpuzzle.com` placeholder'ını değiştir + 1200×630 og-image + deploy (Netlify/Pages/Vercel) → sonra `kShareUrl` + `kPrivacyPolicyUrl`'ü bağla. Deploy adımları `landing/README.md`'de.
 3. **Launch checklist (yayın öncesi, kod değil):** Gizlilik Politikası barındırma + **ToS/EULA** (coin/IAP gerektirir) + store-sayfası **ASO & yerelleştirme** (oyun-içi dil-bağımsız ama mağaza sayfası ayrı).
 4. **Android testi (BLOKE)** — Android Studio/SDK kurulu değil; kurulunca emülatör/cihaz testi (haptics, safe-area, ad/IAP SDK).
 5. (Sonra) **küçük test kampanyası** → D1/D7 + LTV/CPI ölç → tutuyorsa ölçekle.

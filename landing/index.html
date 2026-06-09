@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<!-- ───────────────────────────────────────────────────────────────────
+  TODO before publishing: replace every "https://reachpuzzle.com" below with
+  your real domain (canonical, og:url, twitter:url, JSON-LD, sitemap.xml),
+  drop a 1200×630 og-image.png into landing/assets/, then point kShareUrl in
+  lib/config/app_constants.dart at this URL. See landing/README.md.
+──────────────────────────────────────────────────────────────────── -->
+
+<title>REACH — A Calm Number Puzzle | Daily Number Game for iOS &amp; Android</title>
+<meta name="description" content="REACH is a calm, wordless number puzzle: drag across adjacent tiles that add up to the target and clear the whole board. A relaxing daily number challenge plus an endless Zen mode — free on iOS and Android." />
+<meta name="keywords" content="number puzzle, calm puzzle game, daily number game, relaxing brain game, sum puzzle, find and clear, number game free" />
+<link rel="canonical" href="https://reachpuzzle.com/" />
+<meta name="robots" content="index, follow" />
+<meta name="theme-color" content="#efe7d6" />
+
+<!-- Open Graph / social cards -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="REACH" />
+<meta property="og:title" content="REACH — A Calm Number Puzzle" />
+<meta property="og:description" content="Connect the numbers. Reach the target. Clear the board. A calm, wordless number puzzle for iOS &amp; Android." />
+<meta property="og:url" content="https://reachpuzzle.com/" />
+<meta property="og:image" content="https://reachpuzzle.com/assets/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="REACH — A Calm Number Puzzle" />
+<meta name="twitter:description" content="Connect the numbers. Reach the target. Clear the board." />
+<meta name="twitter:image" content="https://reachpuzzle.com/assets/og-image.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<!-- Structured data: helps search engines render an app/game rich result. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "REACH",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "iOS, Android",
+  "description": "A calm, wordless number puzzle: drag across adjacent tiles that add up to the target and clear the whole board. Daily challenge with streaks plus an endless Zen mode.",
+  "url": "https://reachpuzzle.com/",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
+
+<style>
+  :root {
+    --paper: #efe7d6;
+    --paper-2: #f6f1e4;
+    --ink: #3a322a;
+    --ink-soft: #8c8170;
+    --accent: #c0673f;
+    --accent-deep: #9c4f2d;
+    --good: #5e7c57;
+    --tile: #fbf6ec;
+    --line: #e4dac6;
+    --shadow: rgba(58, 50, 42, 0.16);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: "Fraunces", Georgia, serif;
+    background: radial-gradient(120% 80% at 50% -10%, var(--paper-2), var(--paper));
+    color: var(--ink);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1020px; margin: 0 auto; padding: 0 24px; }
+  .eyebrow {
+    font-family: "DM Mono", ui-monospace, monospace;
+    font-size: 0.72rem; letter-spacing: 0.28em; text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  /* Header */
+  header { padding: 26px 0 8px; }
+  .brand {
+    font-weight: 600; font-size: 1.5rem; letter-spacing: 0.34em;
+    color: var(--ink); text-decoration: none;
+  }
+
+  /* Hero */
+  .hero { padding: 64px 0 40px; text-align: center; }
+  .hero h1 {
+    font-weight: 600; letter-spacing: 0.18em;
+    font-size: clamp(3.2rem, 12vw, 6rem); line-height: 1; color: var(--ink);
+  }
+  .hero .tagline {
+    margin-top: 18px; font-size: clamp(1.2rem, 3.6vw, 1.7rem);
+    color: var(--ink); font-weight: 400;
+  }
+  .hero .lede {
+    margin: 18px auto 0; max-width: 30ch; color: var(--ink-soft);
+    font-size: 1.05rem;
+  }
+  .cta { margin-top: 34px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .store {
+    font-family: "DM Mono", monospace; font-size: 0.82rem; letter-spacing: 0.04em;
+    background: var(--ink); color: var(--paper-2);
+    padding: 14px 22px; border-radius: 14px; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 9px;
+    box-shadow: 0 10px 22px -12px var(--shadow);
+    transition: transform 0.12s ease;
+  }
+  .store:hover { transform: translateY(-2px); }
+  .store small { display: block; font-size: 0.62rem; color: #b9b0a0; letter-spacing: 0.12em; }
+  .store.soon { background: var(--tile); color: var(--ink); border: 1px solid var(--line); }
+
+  /* Board demo */
+  .board {
+    margin: 50px auto 0; display: grid; grid-template-columns: repeat(3, 64px);
+    gap: 12px; justify-content: center; width: max-content;
+  }
+  .target {
+    font-size: 3rem; font-weight: 600; color: var(--accent); line-height: 1;
+  }
+  .target .dots { display: flex; gap: 5px; justify-content: center; margin-bottom: 10px; }
+  .target .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--ink-soft); opacity: 0.6; }
+  .cell {
+    width: 64px; height: 64px; border-radius: 16px; background: var(--tile);
+    border: 1px solid var(--line); display: grid; place-items: center;
+    font-size: 1.6rem; font-weight: 600; color: var(--ink);
+    box-shadow: 0 6px 14px -10px var(--shadow);
+  }
+  .cell.lit {
+    background: linear-gradient(180deg, var(--good), #4c6747);
+    color: #fff; border-color: #4c6747; transform: translateY(-3px);
+    box-shadow: 0 12px 20px -10px rgba(76, 103, 71, 0.5);
+  }
+
+  /* Sections */
+  section { padding: 60px 0; }
+  .section-head { text-align: center; margin-bottom: 40px; }
+  .section-head h2 {
+    font-weight: 600; font-size: clamp(1.8rem, 5vw, 2.6rem);
+    letter-spacing: 0.01em; margin-top: 10px;
+  }
+  .steps, .features {
+    display: grid; gap: 22px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+  .card {
+    background: var(--paper-2); border: 1px solid var(--line);
+    border-radius: 20px; padding: 26px 24px;
+    box-shadow: 0 14px 30px -22px var(--shadow);
+  }
+  .card .n {
+    font-family: "DM Mono", monospace; font-size: 0.78rem; letter-spacing: 0.2em;
+    color: var(--accent); text-transform: uppercase;
+  }
+  .card h3 { font-weight: 600; font-size: 1.25rem; margin: 10px 0 8px; }
+  .card p { color: var(--ink-soft); font-size: 0.98rem; }
+  .features .card { text-align: left; }
+  .features .ico { font-size: 1.5rem; }
+
+  /* Modes */
+  .modes { display: grid; gap: 22px; grid-template-columns: 1fr 1fr; }
+  .mode {
+    border-radius: 22px; padding: 32px 28px; border: 1px solid var(--line);
+    background: var(--tile);
+  }
+  .mode h3 { font-weight: 600; font-size: 1.5rem; margin-bottom: 8px; }
+  .mode p { color: var(--ink-soft); }
+  .mode .tag {
+    font-family: "DM Mono", monospace; font-size: 0.7rem; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--accent);
+  }
+
+  /* Footer */
+  footer {
+    text-align: center; padding: 50px 0 40px; color: var(--ink-soft);
+    border-top: 1px solid var(--line); margin-top: 30px;
+  }
+  footer a { color: var(--ink); }
+  footer .brand-sm { font-weight: 600; letter-spacing: 0.3em; color: var(--ink); }
+
+  @media (max-width: 560px) {
+    .modes { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="wrap"><a class="brand" href="/">REACH</a></div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <div class="wrap hero">
+      <p class="eyebrow">A calm number puzzle</p>
+      <h1>REACH</h1>
+      <p class="tagline">Connect the numbers. Reach the target. Clear the board.</p>
+      <p class="lede">A quiet, wordless puzzle you can sink into — no timers, no fail screens, just you and the numbers.</p>
+
+      <div class="cta">
+        <a class="store soon" href="#" aria-label="Coming soon to the App Store">
+          <span> App Store<small>Coming soon</small></span>
+        </a>
+        <a class="store soon" href="#" aria-label="Coming soon to Google Play">
+          <span> Google Play<small>Coming soon</small></span>
+        </a>
+      </div>
+
+      <!-- Spoiler-free board demo: a path of 4 · 5 · 3 reaching 12 -->
+      <div class="target" aria-hidden="true">
+        <div class="dots"><i></i><i></i><i></i></div>
+        12
+      </div>
+      <div class="board" aria-hidden="true">
+        <div class="cell lit">4</div><div class="cell lit">5</div><div class="cell lit">3</div>
+        <div class="cell">7</div><div class="cell">2</div><div class="cell">6</div>
+      </div>
+    </div>
+
+    <!-- How to play -->
+    <section id="how">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow">How to play</p>
+          <h2>Three rules. No words.</h2>
+        </div>
+        <div class="steps">
+          <div class="card">
+            <span class="n">01</span>
+            <h3>Drag a path</h3>
+            <p>Trace across tiles that touch, side by side.</p>
+          </div>
+          <div class="card">
+            <span class="n">02</span>
+            <h3>Hit the target</h3>
+            <p>When your tiles add up to the number on top, they clear.</p>
+          </div>
+          <div class="card">
+            <span class="n">03</span>
+            <h3>Empty the board</h3>
+            <p>Clear every tile to win. Every puzzle is always solvable.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow">Why it feels good</p>
+          <h2>Calm by design</h2>
+        </div>
+        <div class="features">
+          <div class="card"><div class="ico">🌿</div><h3>No fail state</h3><p>Undo freely. You're never punished — only gently guided.</p></div>
+          <div class="card"><div class="ico">🗓️</div><h3>Daily challenge</h3><p>One shared puzzle a day, with streaks and a spoiler-free share.</p></div>
+          <div class="card"><div class="ico">∞</div><h3>Endless Zen</h3><p>A bottomless, gently rising stream of boards for quiet focus.</p></div>
+          <div class="card"><div class="ico">🌍</div><h3>No language needed</h3><p>Just numbers — play in any language, anywhere.</p></div>
+          <div class="card"><div class="ico">✈️</div><h3>Works offline</h3><p>No account, no connection required. Open and play.</p></div>
+          <div class="card"><div class="ico">👁️</div><h3>Colourblind-safe</h3><p>State is shown by shape and motion, not colour alone.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modes -->
+    <section id="modes">
+      <div class="wrap">
+        <div class="modes">
+          <div class="mode">
+            <span class="tag">Daily</span>
+            <h3>One puzzle, everyone</h3>
+            <p>The same board for the whole world each day. Keep your streak and share your result — without spoiling it.</p>
+          </div>
+          <div class="mode">
+            <span class="tag">Zen</span>
+            <h3>As long as you like</h3>
+            <p>An endless ladder that eases you in and grows with you. No pressure, no end.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p class="brand-sm">REACH</p>
+      <p style="margin-top:10px;">A calm number puzzle for iOS &amp; Android.</p>
+      <p style="margin-top:14px; font-size:0.9rem;">
+        <a href="/privacy.html">Privacy</a> · Coming soon
+      </p>
+    </div>
+  </footer>
+</body>
+</html>
