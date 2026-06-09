@@ -148,19 +148,19 @@ test/             engine (stress + solver + game_state + generator), state (cont
 - **v1.0** — MVP + bul-ve-temizle + günlük/zen + coin ekonomisi + **shop** (önceki GitHub baseline'ı).
 - **v1.1** — **ses** (SFX + ambient), shop cilaları (tema önizleme / yetersiz-bakiye flash / haptik), **colourblind-safe by-default** (match'te her zaman ✓, toggle ✕ ekler), eski "merge" metinlerinin temizliği, README'nin güncel ürüne göre baştan yazımı + 4 ajanlı doğruluk denetimi, DEVLOG eklemeleri.
 - **v1.2** — **etkileşimli onboarding**: pasif animasyon yerine oyuncu, sabit-elle-hazırlanmış minik bir tahtayı (`4 5 3 / 7 2 3`, hedef 12) GERÇEK sürükleyerek çözer; aktif satır halkayla işaretli + üstünde **kayan parmak** (BoardWidget'in kendi geometrisiyle), temizleme/kazanma anını hisseder, sonra gerçek tahtasına iner. Tamamen kelimesiz. **Yeni GameMode EKLENMEDİ** (tutorial mantığı kendi `GameState`'iyle bir widget'ta izole — `_onWin`/coin/yıldız/win-sheet/streak'e dokunmadan). Tahta "mermi geçirmez": tek hedef-toplamı yolları iki satır → kazara temizleme yok, iki sırayla da kazanılır, çıkmaz yok (`tutorial_puzzle_test.dart` ile kanıtlı). Tasarım için 3-ajanlı judge-panel workflow'u; eski `onboarding_overlay.dart` silindi.
+- **v1.3** — **viral spoiler-free Daily paylaşımı** (dağıtım motoru): Wordle tarzı **gün-numarası** (`REACH #160`), marka-renkli **grup imzası** (🟧 — yalnızca sayı, herkeste aynı), **yıldızlar** (⭐ /3 — artık paylaşımda), clean/ipucu rozeti, streak (🔥), ve **CTA linki** (`kShareUrl`, placeholder → yayında gerçek mağaza/smart-link). Spoiler-free *yapısal garanti*: builder yalnızca soyut metrik alır, hedef/değer/pozisyon hiç girmez. 8 test (`share_text_test.dart`).
 
 ---
 
 ## 8. Sıradaki yol haritası
 
-**Tamamlandı (son turlar):** find-and-clear pivotu, peg-solitaire çıkmaz, coin ekonomisi + analytics + remote-config, yıldız/clean, decoy-zorluk, **shop** (coin paketleri/Premium/coin'le temalar), **ses (SFX + ambient)**, shop cilaları (tema önizleme [uzun bas], yetersiz-bakiye kırmızı flash, seçim haptik'i), **etkileşimli onboarding** (rehberli ilk board, gerçek sürükleme + kayan parmak).
+**Tamamlandı (son turlar):** find-and-clear pivotu, peg-solitaire çıkmaz, coin ekonomisi + analytics + remote-config, yıldız/clean, decoy-zorluk, **shop** (coin paketleri/Premium/coin'le temalar), **ses (SFX + ambient)**, shop cilaları (tema önizleme [uzun bas], yetersiz-bakiye kırmızı flash, seçim haptik'i), **etkileşimli onboarding** (rehberli ilk board, gerçek sürükleme + kayan parmak), **viral spoiler-free Daily paylaşımı** (gün-numarası + yıldız + grup imzası + CTA link).
 
 **Yapılacaklar (Gemini'den süzülenler dahil):**
-1. **Viral spoiler-free paylaşım** — Wordle tarzı görsel/emoji, pozisyon/hedef sızdırmadan (organik büyüme; dağıtım-dostu).
-2. **Gerçek analytics sağlayıcısı** (Firebase) + remote-config backend.
-3. **Launch checklist (yayın öncesi, kod değil):** Gizlilik Politikası barındırma (placeholder URL var) + **ToS/EULA** (coin/IAP gerektirir) + store-sayfası **ASO & yerelleştirme** (oyun-içi dil-bağımsız ama mağaza sayfası ayrı).
-4. **Android testi** — şu ana dek sadece iOS sim; fiziksel/emülatör Android testi (haptics, safe-area, ad/IAP SDK).
-5. (Sonra) **küçük test kampanyası** → D1/D7 + LTV/CPI ölç → tutuyorsa ölçekle.
+1. **Gerçek analytics sağlayıcısı** (Firebase) + remote-config backend.
+2. **Launch checklist (yayın öncesi, kod değil):** Gizlilik Politikası barındırma (placeholder URL var) + **CTA/share linki** (`kShareUrl` placeholder → gerçek smart-link) + **ToS/EULA** (coin/IAP gerektirir) + store-sayfası **ASO & yerelleştirme** (oyun-içi dil-bağımsız ama mağaza sayfası ayrı).
+3. **Android testi** — şu ana dek sadece iOS sim; fiziksel/emülatör Android testi (haptics, safe-area, ad/IAP SDK).
+4. (Sonra) **küçük test kampanyası** → D1/D7 + LTV/CPI ölç → tutuyorsa ölçekle.
 
 **Park edilenler / bilinçli REDDEDİLENLER:**
 - Yeni taş mekanikleri (buz / çarpan x2 / **eksi sayılar**) — komplekslik + bazıları çözülebilirlik modelini kırar + sakin markaya fazla. *Çekirdek doğrulanınca dikkatle düşünülebilir.*

@@ -1,24 +1,67 @@
 import '../config/app_constants.dart';
 
-/// Builds the **spoiler-free** Daily share string. It conveys that the board
-/// was cleared, how many groups, whether it was clean (no hints), and the
-/// streak — but never the target or which tiles to trace, so it can't spoil
-/// the puzzle.
+/// REACH's daily "epoch" — Daily #1. The share shows a Wordle-style puzzle
+/// number counted from here, so each day reads as a collectible identity.
+final DateTime _shareEpoch = DateTime.utc(2026, 1, 1);
+
+/// Builds the **spoiler-free**, viral Daily result string.
+///
+/// It conveys *identity* (a daily puzzle number), *performance* (stars, and
+/// clean vs hints), and a *streak* — plus a call-to-action link so it spreads.
+/// It NEVER includes the target, tile values, or positions, so it cannot spoil
+/// the puzzle for anyone who hasn't played yet. (The builder deliberately
+/// accepts only abstract performance metrics — never the grid or target — so
+/// a leak is impossible by construction.)
+///
+/// Example:
+/// ```
+/// REACH #160
+/// 🟧🟧🟧🟧
+/// ⭐⭐⭐  ·  ✨ clean  ·  🔥 5
+///
+/// https://reach.game
+/// ```
 String buildDailyShareText({
   required String dateKey,
   required int groups,
+  required int stars,
   required int hintsUsed,
   required int currentStreak,
 }) {
-  final clean = hintsUsed == 0;
+  final number = _dailyNumber(dateKey);
+  final header = number != null ? '$kAppName #$number' : '$kAppName · $dateKey';
 
-  // Neutral symbols: one ◆ per group (count only — no positions, no values).
-  final capped = groups > 16 ? 16 : groups;
-  final bar = '◆' * capped;
+  // Stars out of three — the performance brag.
+  final s = stars.clamp(0, 3);
+  final starRow = '⭐' * s + '☆' * (3 - s);
 
-  final flair = clean ? '✦ clean' : '+$hintsUsed hint${hintsUsed == 1 ? '' : 's'}';
-  final streakLine = currentStreak > 1 ? '\n🔥 $currentStreak-day streak' : '';
+  // Brand-coloured signature: one tile per group cleared. A count only — the
+  // same for everyone that day; never positions, values, or the target.
+  final capped = groups > 12 ? 12 : (groups < 0 ? 0 : groups);
+  final signature = '🟧' * capped;
 
-  return '$kAppName · Daily $dateKey\n'
-      '$bar  ·  $flair$streakLine';
+  final flair = hintsUsed == 0
+      ? '✨ clean'
+      : '💡 $hintsUsed hint${hintsUsed == 1 ? '' : 's'}';
+  final streak = currentStreak > 1 ? '  ·  🔥 $currentStreak' : '';
+
+  return '$header\n'
+      '$signature\n'
+      '$starRow  ·  $flair$streak\n'
+      '\n'
+      '$kShareUrl';
+}
+
+/// Wordle-style puzzle number for [dateKey] (`YYYY-MM-DD`), or null if it can't
+/// be parsed. Daily #1 is [_shareEpoch]. Computed in UTC so it never drifts
+/// with the device timezone.
+int? _dailyNumber(String dateKey) {
+  final parts = dateKey.split('-');
+  if (parts.length != 3) return null;
+  final y = int.tryParse(parts[0]);
+  final m = int.tryParse(parts[1]);
+  final d = int.tryParse(parts[2]);
+  if (y == null || m == null || d == null) return null;
+  final date = DateTime.utc(y, m, d);
+  return date.difference(_shareEpoch).inDays + 1;
 }

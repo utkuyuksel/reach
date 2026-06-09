@@ -150,6 +150,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final text = buildDailyShareText(
       dateKey: session.dateKey ?? '',
       groups: session.totalGroups,
+      stars: ref.read(gameConfigProvider).starsForWrong(session.wrongTraces),
       hintsUsed: session.hintsUsed,
       currentStreak: daily.currentStreak,
     );

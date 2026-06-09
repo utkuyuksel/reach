@@ -30,7 +30,7 @@ const String kAppTagline = 'a calm number puzzle';
 
 /// Marketing version shown in Settings. Keep in step with `pubspec.yaml`'s
 /// `version:` and the matching git tag (e.g. `v1.1`).
-const String kAppVersion = '1.2';
+const String kAppVersion = '1.3';
 
 /// Reverse-DNS bundle / package identifier used by the stores.
 ///
@@ -41,3 +41,9 @@ const String kBundleId = 'com.reach.reach';
 /// Privacy policy URL shown in Settings (required by the stores for apps with
 /// ads/IAP). TODO: replace with the real hosted policy URL before shipping.
 const String kPrivacyPolicyUrl = 'https://example.com/reach/privacy';
+
+/// Call-to-action link appended to the viral Daily share, so anyone who sees a
+/// shared result can find the game (Wordle-style organic growth).
+/// TODO: replace with the real App Store / Play Store / landing URL before
+/// shipping (a single smart link that routes to the right store is ideal).
+const String kShareUrl = 'https://reach.game';
