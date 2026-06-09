@@ -21,6 +21,10 @@ class BoardWidget extends StatefulWidget {
   /// Called when a tile joins the trace (for a soft tick sound).
   final VoidCallback? onTick;
 
+  /// When non-empty (tutorial only), a "finger" gently glides along these
+  /// cells to show the player a path to drag. Hidden while they are dragging.
+  final List<int> coachPath;
+
   /// Submit a traced path; returns true if it cleared a group. A false return
   /// (wrong sum, or a board-stranding move) triggers a gentle bounce.
   final bool Function(List<int> path) onSubmitPath;
@@ -35,13 +39,15 @@ class BoardWidget extends StatefulWidget {
     this.hapticsEnabled = true,
     this.hintCells = const [],
     this.onTick,
+    this.coachPath = const [],
   });
 
   @override
   State<BoardWidget> createState() => _BoardWidgetState();
 }
 
-class _BoardWidgetState extends State<BoardWidget> {
+class _BoardWidgetState extends State<BoardWidget>
+    with SingleTickerProviderStateMixin {
   static const double _gap = 10;
   static const double _topPad = 32; // room for the running-sum chip
 
@@ -49,7 +55,36 @@ class _BoardWidgetState extends State<BoardWidget> {
   List<int> _reject = const [];
   double _cell = 0;
 
+  /// Looping driver for the tutorial coach finger; created only when a
+  /// [BoardWidget.coachPath] is supplied (so the real game pays for no ticker).
+  AnimationController? _coach;
+
   Grid get _grid => widget.grid;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.coachPath.isNotEmpty) _ensureCoach();
+  }
+
+  @override
+  void didUpdateWidget(BoardWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.coachPath.isNotEmpty) _ensureCoach();
+  }
+
+  @override
+  void dispose() {
+    _coach?.dispose();
+    super.dispose();
+  }
+
+  void _ensureCoach() {
+    _coach ??= AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat();
+  }
 
   int get _sum {
     var s = 0;
@@ -166,6 +201,13 @@ class _BoardWidgetState extends State<BoardWidget> {
                       child: _cellWidget(i),
                     ),
                   if (_path.isNotEmpty) _sumChip(stride),
+                  if (_coach != null &&
+                      _path.isEmpty &&
+                      widget.coachPath.length >= 2)
+                    AnimatedBuilder(
+                      animation: _coach!,
+                      builder: (context, _) => _coachFinger(stride),
+                    ),
                 ],
               ),
             ),
@@ -199,6 +241,46 @@ class _BoardWidgetState extends State<BoardWidget> {
               size: _cell,
               colorblind: widget.colorblind,
             ),
+    );
+  }
+
+  /// A touch icon that glides along [BoardWidget.coachPath], showing the player
+  /// "drag across these tiles". Uses the board's own cell geometry, fades in/out
+  /// at the loop ends, and ignores pointers so the real drag passes through.
+  Widget _coachFinger(double stride) {
+    final pts = <Offset>[];
+    for (final i in widget.coachPath) {
+      final col = i % _grid.cols;
+      final row = i ~/ _grid.cols;
+      pts.add(Offset(
+        col * stride + _cell / 2,
+        _topPad + row * stride + _cell / 2,
+      ));
+    }
+    if (pts.length < 2) return const SizedBox.shrink();
+
+    final v = _coach!.value;
+    final glide = (v / 0.82).clamp(0.0, 1.0); // travel, then briefly rest
+    final fpos = glide * (pts.length - 1);
+    final seg = fpos.floor().clamp(0, pts.length - 2);
+    final pos = Offset.lerp(pts[seg], pts[seg + 1], fpos - seg)!;
+    final opacity = v < 0.12
+        ? v / 0.12
+        : (v > 0.86 ? (1 - (v - 0.86) / 0.14) : 1.0);
+
+    return Positioned(
+      left: pos.dx - 13,
+      top: pos.dy + 2,
+      child: IgnorePointer(
+        child: Opacity(
+          opacity: opacity.clamp(0.0, 1.0),
+          child: Icon(
+            Icons.touch_app_rounded,
+            size: 26,
+            color: widget.palette.accentDeep,
+          ),
+        ),
+      ),
     );
   }
 

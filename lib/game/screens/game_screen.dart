@@ -20,7 +20,7 @@ import '../theme/palette.dart';
 import '../widgets/board_widget.dart';
 import '../widgets/coin_chip.dart';
 import '../widgets/control_bar.dart';
-import '../widgets/onboarding_overlay.dart';
+import '../widgets/tutorial_overlay.dart';
 import '../widgets/paper_background.dart';
 import '../widgets/soft_button.dart';
 import '../widgets/target_display.dart';
@@ -269,9 +269,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   ),
                 ),
               if (showOnboarding)
-                OnboardingOverlay(
+                TutorialOverlay(
                   palette: palette,
-                  onDismiss: () => ref
+                  onComplete: () => ref
                       .read(settingsControllerProvider.notifier)
                       .setOnboardingDone(true),
                 ),
