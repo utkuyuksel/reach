@@ -76,3 +76,9 @@ app.*.map.json
 !**/ios/**/default.mode2v3
 !**/ios/**/default.pbxuser
 !**/ios/**/default.perspectivev3
+
+# Firebase native config — redundant with lib/firebase_options.dart (which the
+# app actually inits from). Kept out of the repo to avoid duplicating client
+# keys; re-add locally if you ever switch to the native gradle-plugin route.
+ios/Runner/GoogleService-Info.plist
+android/app/google-services.json

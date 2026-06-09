@@ -1,12 +1,15 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'config/service_config.dart';
+import 'firebase_options.dart';
 import 'game/app.dart';
 import 'game/state/providers.dart';
 import 'services/ad_service.dart';
 import 'services/analytics_service.dart';
+import 'services/firebase_analytics_service.dart';
 import 'services/google_ad_service.dart';
 import 'services/prefs_storage_service.dart';
 import 'services/purchase_service.dart';
@@ -40,10 +43,17 @@ Future<void> main() async {
   final RemoteConfigService remoteConfig = LocalRemoteConfigService();
   await remoteConfig.init();
 
-  // Analytics: console logger in dev. TODO: wire a real provider (e.g. Firebase
-  // Analytics) for the real-services build instead of the no-op.
+  // Analytics: console logger in dev; Firebase Analytics in the real-services
+  // build. Firebase is initialized from lib/firebase_options.dart (Dart-only,
+  // no native config-file bundling needed), and ONLY when real services are on
+  // so dev/test builds never touch Firebase.
+  if (kUseRealServices) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
   final AnalyticsService analytics =
-      kUseRealServices ? NoopAnalyticsService() : DebugAnalyticsService();
+      kUseRealServices ? FirebaseAnalyticsService() : DebugAnalyticsService();
   await analytics.init();
 
   final SoundService sound = AudioPlayersSoundService();
