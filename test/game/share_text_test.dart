@@ -59,8 +59,13 @@ void main() {
       expect(build(currentStreak: 1), isNot(contains('🔥')));
     });
 
-    test('includes the call-to-action URL', () {
-      expect(build(), contains(kShareUrl));
+    test('appends the CTA URL only when one is configured', () {
+      final t = build();
+      if (kShareUrl.isEmpty) {
+        expect(t, isNot(contains('http')));
+      } else {
+        expect(t, endsWith(kShareUrl));
+      }
     });
 
     test('the group signature is a count only (one tile per group)', () {

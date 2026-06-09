@@ -26,6 +26,17 @@ class AnalyticsEvents {
   static const dailyCompleted = 'daily_completed';
   static const undo = 'undo';
   static const restart = 'restart';
+
+  // Onboarding funnel — do new players finish learning the mechanic?
+  static const onboardingCompleted = 'onboarding_completed';
+  static const onboardingSkipped = 'onboarding_skipped';
+
+  // Viral / distribution funnel — the share is the growth engine.
+  static const shareOpened = 'share_opened';
+  static const shareCompleted = 'share_completed';
+
+  // Monetization funnel top.
+  static const shopOpened = 'shop_opened';
 }
 
 /// Does nothing (tests, or until a real provider is wired).

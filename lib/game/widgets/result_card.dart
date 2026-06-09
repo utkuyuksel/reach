@@ -103,22 +103,25 @@ class ResultCard extends StatelessWidget {
               highlight: false,
             ),
           ],
-          const SizedBox(height: 30),
-          Container(
-            width: 38,
-            height: 2,
-            color: p.line.withValues(alpha: 0.6),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            host,
-            style: AppText.mono(
-              size: 11,
-              weight: FontWeight.w500,
-              color: p.accent,
-              letterSpacing: 2,
+          // CTA footer only when a link is configured (see kShareUrl).
+          if (host.isNotEmpty) ...[
+            const SizedBox(height: 30),
+            Container(
+              width: 38,
+              height: 2,
+              color: p.line.withValues(alpha: 0.6),
             ),
-          ),
+            const SizedBox(height: 16),
+            Text(
+              host,
+              style: AppText.mono(
+                size: 11,
+                weight: FontWeight.w500,
+                color: p.accent,
+                letterSpacing: 2,
+              ),
+            ),
+          ],
         ],
       ),
     );

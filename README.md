@@ -113,6 +113,24 @@ The Google **test** ad unit IDs and AdMob App IDs are committed so the real-serv
 
 ---
 
+## Analytics
+
+All analytics flow through one `AnalyticsService` interface (`lib/services/analytics_service.dart`), so the funnel is instrumented from day one and the provider is swappable without touching call sites. Events cover the funnels that matter:
+
+- **Onboarding:** `onboarding_completed` / `onboarding_skipped`
+- **Engagement:** `board_start`, `board_clear`, `daily_completed`, `undo`, `restart`, hint events
+- **Virality (the growth engine):** `share_opened`, `share_completed`
+- **Monetization:** `shop_opened`, `coins_earned` / `coins_spent`, `purchase`, `restore`, ad events
+
+By default the build uses a no-op (tests) or a console logger (dev). To wire **Firebase Analytics** (config-drop, no call-site changes):
+
+1. Create a Firebase project; add an iOS app (bundle `com.reach.reach`) and an Android app (same applicationId). Drop `GoogleService-Info.plist` → `ios/Runner/` and `google-services.json` → `android/app/`, and apply the Android `com.google.gms.google-services` Gradle plugin.
+2. `flutter pub add firebase_core firebase_analytics`.
+3. Add `FirebaseAnalyticsService implements AnalyticsService` (map `log()` → `FirebaseAnalytics.instance.logEvent`); call `await Firebase.initializeApp()` in `main()`.
+4. Swap the `analyticsServiceProvider` override to the Firebase impl when `kUseRealServices` is true.
+
+Event names are GA4-friendly (snake_case, ≤40 chars), so they map straight through.
+
 ## Renaming / rebranding
 
 The user-facing name and store identifier live in **one Dart file**: `lib/config/app_constants.dart` (`kAppName`, `kBundleId`). Everything in the Dart/Flutter layer reads from there.

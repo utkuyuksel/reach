@@ -31,11 +31,15 @@ void main() {
     );
   }
 
-  testWidgets('renders the app name, daily number, and CTA host', (tester) async {
+  testWidgets('renders the app name and daily number (+ CTA host when set)',
+      (tester) async {
     await pump(tester);
     expect(find.text(kAppName), findsOneWidget);
     expect(find.text('DAILY #160'), findsOneWidget);
-    expect(find.text(Uri.parse(kShareUrl).host), findsOneWidget);
+    final host = Uri.parse(kShareUrl).host;
+    if (host.isNotEmpty) {
+      expect(find.text(host), findsOneWidget);
+    }
   });
 
   testWidgets('shows three filled stars for a 3-star result', (tester) async {

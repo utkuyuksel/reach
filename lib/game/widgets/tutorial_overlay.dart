@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../engine/models/game_state.dart';
 import '../../engine/models/puzzle.dart';
+import '../../services/analytics_service.dart';
 import '../../services/sound_service.dart';
 import '../state/providers.dart';
 import '../state/settings_controller.dart';
@@ -83,10 +84,16 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay> {
   void _finish() {
     if (_completing) return;
     _completing = true;
+    ref.read(analyticsServiceProvider).log(AnalyticsEvents.onboardingCompleted);
     // Let the win ✓ land before handing off to the real board.
     Future.delayed(const Duration(milliseconds: 1000), () {
       if (mounted) widget.onComplete();
     });
+  }
+
+  void _skip() {
+    ref.read(analyticsServiceProvider).log(AnalyticsEvents.onboardingSkipped);
+    widget.onComplete();
   }
 
   @override
@@ -109,7 +116,7 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay> {
                   child: SoftButton(
                     icon: Icons.close_rounded,
                     palette: p,
-                    onTap: widget.onComplete,
+                    onTap: _skip,
                   ),
                 ),
               ),

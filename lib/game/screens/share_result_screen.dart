@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../services/analytics_service.dart';
 import '../share_text.dart';
 import '../state/providers.dart';
 import '../state/settings_controller.dart';
@@ -42,6 +43,12 @@ class _ShareResultScreenState extends ConsumerState<ShareResultScreen> {
   final GlobalKey _cardKey = GlobalKey();
   bool _busy = false;
 
+  @override
+  void initState() {
+    super.initState();
+    ref.read(analyticsServiceProvider).log(AnalyticsEvents.shareOpened);
+  }
+
   Future<void> _share() async {
     if (_busy) return;
     setState(() => _busy = true);
@@ -71,6 +78,7 @@ class _ShareResultScreenState extends ConsumerState<ShareResultScreen> {
       await SharePlus.instance.share(
         ShareParams(files: [XFile(file.path)], text: caption),
       );
+      ref.read(analyticsServiceProvider).log(AnalyticsEvents.shareCompleted);
     } catch (_) {
       if (mounted) {
         final palette = ref.read(paletteProvider);

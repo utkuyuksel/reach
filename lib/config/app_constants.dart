@@ -30,7 +30,7 @@ const String kAppTagline = 'a calm number puzzle';
 
 /// Marketing version shown in Settings. Keep in step with `pubspec.yaml`'s
 /// `version:` and the matching git tag (e.g. `v1.1`).
-const String kAppVersion = '1.4';
+const String kAppVersion = '1.5';
 
 /// Reverse-DNS bundle / package identifier used by the stores.
 ///
@@ -44,6 +44,10 @@ const String kPrivacyPolicyUrl = 'https://example.com/reach/privacy';
 
 /// Call-to-action link appended to the viral Daily share, so anyone who sees a
 /// shared result can find the game (Wordle-style organic growth).
-/// TODO: replace with the real App Store / Play Store / landing URL before
-/// shipping (a single smart link that routes to the right store is ideal).
-const String kShareUrl = 'https://reach.game';
+///
+/// Intentionally EMPTY for now: there's no landing page / store listing yet, so
+/// the share omits the URL entirely rather than ship a dead link. When a
+/// landing page or store link exists, set it here and it reappears in the
+/// share text and on the result card automatically. A single smart link that
+/// routes to the right store is ideal.
+const String kShareUrl = '';

@@ -45,11 +45,13 @@ String buildDailyShareText({
       : '💡 $hintsUsed hint${hintsUsed == 1 ? '' : 's'}';
   final streak = currentStreak > 1 ? '  ·  🔥 $currentStreak' : '';
 
+  // The CTA link is appended only when one is configured (see kShareUrl).
+  final tail = kShareUrl.isEmpty ? '' : '\n\n$kShareUrl';
+
   return '$header\n'
       '$signature\n'
-      '$starRow  ·  $flair$streak\n'
-      '\n'
-      '$kShareUrl';
+      '$starRow  ·  $flair$streak'
+      '$tail';
 }
 
 /// Wordle-style puzzle number for [dateKey] (`YYYY-MM-DD`), or null if it can't

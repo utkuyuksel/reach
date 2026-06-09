@@ -29,6 +29,12 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
   bool _adBusy = false;
   bool _flashCoins = false;
 
+  @override
+  void initState() {
+    super.initState();
+    ref.read(analyticsServiceProvider).log(AnalyticsEvents.shopOpened);
+  }
+
   void _toast(String msg, GamePalette palette) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg, style: AppText.mono(size: 12.5, color: Colors.white)),
