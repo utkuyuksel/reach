@@ -28,7 +28,7 @@ String buildDailyShareText({
   required int hintsUsed,
   required int currentStreak,
 }) {
-  final number = _dailyNumber(dateKey);
+  final number = dailyNumber(dateKey);
   final header = number != null ? '$kAppName #$number' : '$kAppName · $dateKey';
 
   // Stars out of three — the performance brag.
@@ -54,8 +54,8 @@ String buildDailyShareText({
 
 /// Wordle-style puzzle number for [dateKey] (`YYYY-MM-DD`), or null if it can't
 /// be parsed. Daily #1 is [_shareEpoch]. Computed in UTC so it never drifts
-/// with the device timezone.
-int? _dailyNumber(String dateKey) {
+/// with the device timezone. Shared by the text share and the result card.
+int? dailyNumber(String dateKey) {
   final parts = dateKey.split('-');
   if (parts.length != 3) return null;
   final y = int.tryParse(parts[0]);

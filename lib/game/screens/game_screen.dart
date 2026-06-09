@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../engine/solver.dart';
 import '../../services/analytics_service.dart';
 import '../../services/sound_service.dart';
-import '../share_text.dart';
 import '../state/daily_controller.dart';
 import '../state/entitlement_controller.dart';
 import '../state/game_controller.dart';
@@ -25,6 +23,7 @@ import '../widgets/paper_background.dart';
 import '../widgets/soft_button.dart';
 import '../widgets/target_display.dart';
 import '../widgets/win_sheet.dart';
+import 'share_result_screen.dart';
 import 'shop_screen.dart';
 
 /// The core gameplay screen, driven by [gameControllerProvider].
@@ -145,16 +144,19 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     ref.read(gameControllerProvider.notifier).nextZen();
   }
 
-  Future<void> _onShareDaily(GameSession session) async {
+  void _onShareDaily(GameSession session) {
     final daily = ref.read(dailyControllerProvider);
-    final text = buildDailyShareText(
-      dateKey: session.dateKey ?? '',
-      groups: session.totalGroups,
-      stars: ref.read(gameConfigProvider).starsForWrong(session.wrongTraces),
-      hintsUsed: session.hintsUsed,
-      currentStreak: daily.currentStreak,
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ShareResultScreen(
+          dateKey: session.dateKey ?? '',
+          stars: ref.read(gameConfigProvider).starsForWrong(session.wrongTraces),
+          groups: session.totalGroups,
+          hintsUsed: session.hintsUsed,
+          streak: daily.currentStreak,
+        ),
+      ),
     );
-    await SharePlus.instance.share(ShareParams(text: text));
   }
 
   void _goHome() => Navigator.of(context).maybePop();
@@ -288,9 +290,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     primaryIcon: session.mode == GameMode.daily
                         ? Icons.ios_share_rounded
                         : Icons.arrow_forward_rounded,
-                    onPrimary: () => session.mode == GameMode.daily
-                        ? _onShareDaily(session)
-                        : _onNext(session),
+                    onPrimary: () {
+                      if (session.mode == GameMode.daily) {
+                        _onShareDaily(session);
+                      } else {
+                        _onNext(session);
+                      }
+                    },
                     onHome: _goHome,
                   ),
                 ),
