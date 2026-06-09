@@ -41,9 +41,9 @@ class DevPurchaseService implements PurchaseService {
 
   static const _devPrices = {
     IapConfig.premiumProductId: r'$3.99',
-    'com.reach.reach.coins_small': r'$0.99',
-    'com.reach.reach.coins_medium': r'$2.99',
-    'com.reach.reach.coins_large': r'$6.99',
+    'com.utkuyuksel.reach.coins_small': r'$0.99',
+    'com.utkuyuksel.reach.coins_medium': r'$2.99',
+    'com.utkuyuksel.reach.coins_large': r'$6.99',
   };
 
   @override

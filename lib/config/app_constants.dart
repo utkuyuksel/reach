@@ -32,11 +32,14 @@ const String kAppTagline = 'a calm number puzzle';
 /// `version:` and the matching git tag (e.g. `v1.1`).
 const String kAppVersion = '1.5';
 
-/// Reverse-DNS bundle / package identifier used by the stores.
-///
-/// Placeholder for the working title. Replace with the real identifier before
-/// shipping, and mirror it in the native files documented above.
-const String kBundleId = 'com.reach.reach';
+/// Reverse-DNS bundle / package identifier used by the stores. This is the
+/// REAL, PERMANENT id (org segment = the developer handle, so it survives any
+/// game rename and groups future apps) — it must NOT change after the first
+/// store publish. Mirrored in the native files documented above (iOS project,
+/// Android gradle namespace/applicationId, and the Kotlin package directory),
+/// and it namespaces the IAP product ids in `iap_config.dart`. Use this exact
+/// id when registering the iOS + Android apps in Firebase.
+const String kBundleId = 'com.utkuyuksel.reach';
 
 /// Privacy policy URL shown in Settings (required by the stores for apps with
 /// ads/IAP). TODO: replace with the real hosted policy URL before shipping.

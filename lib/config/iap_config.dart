@@ -10,20 +10,20 @@
 ///       the store consoles. See README → "Ads & IAP setup".
 class IapConfig {
   /// Non-consumable Premium unlock.
-  static const String premiumProductId = 'com.reach.reach.premium';
+  static const String premiumProductId = 'com.utkuyuksel.reach.premium';
 
   /// Consumable coin packs: product id → coins granted.
   static const Map<String, int> coinPacks = {
-    'com.reach.reach.coins_small': 250,
-    'com.reach.reach.coins_medium': 700,
-    'com.reach.reach.coins_large': 2000,
+    'com.utkuyuksel.reach.coins_small': 250,
+    'com.utkuyuksel.reach.coins_medium': 700,
+    'com.utkuyuksel.reach.coins_large': 2000,
   };
 
   /// Coin packs in display order.
   static const List<String> coinPackOrder = [
-    'com.reach.reach.coins_small',
-    'com.reach.reach.coins_medium',
-    'com.reach.reach.coins_large',
+    'com.utkuyuksel.reach.coins_small',
+    'com.utkuyuksel.reach.coins_medium',
+    'com.utkuyuksel.reach.coins_large',
   ];
 
   /// All product IDs queried on launch.

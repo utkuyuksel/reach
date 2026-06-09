@@ -29,7 +29,7 @@ void main() {
   test('buying a coin pack grants its coins', () async {
     final c = await _container();
     final start = c.read(walletControllerProvider); // builds + subscribes
-    const pack = 'com.reach.reach.coins_small';
+    const pack = 'com.utkuyuksel.reach.coins_small';
 
     await c.read(walletControllerProvider.notifier).buyPack(pack);
     await Future<void>.delayed(Duration.zero); // let the purchases stream deliver

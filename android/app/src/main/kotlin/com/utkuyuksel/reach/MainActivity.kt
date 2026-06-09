@@ -1,4 +1,4 @@
-package com.reach.reach
+package com.utkuyuksel.reach
 
 import io.flutter.embedding.android.FlutterActivity
 
