@@ -22,7 +22,9 @@ class GameController extends Notifier<GameSession?> {
   int _zenNonce = 0;
   bool _winRecorded = false;
 
-  /// Set when the player hits a dead end this board (mercy signal).
+  /// Set when the player hits a dead end this board (mercy signal). Survives
+  /// undo BY DESIGN: undoing out of a dead end doesn't erase the fact the
+  /// player struggled — that's exactly when the next boards should ease.
   bool _sawStuck = false;
 
   /// Invisible difficulty director: >0 ⇒ the next N Zen boards sit at the
@@ -231,43 +233,62 @@ class GameController extends Notifier<GameSession?> {
     final cleanBadge = session.hintsUsed == 0; // the "clean" badge
     final flowClean = cleanBadge && session.wrongTraces == 0; // chain rule
 
+    // Date-keyed modes pay only for a FRESH record — replaying a completed
+    // day (restart-after-win, archive re-entry) must never re-mint coins.
     var earned = 0;
     switch (session.mode) {
       case GameMode.daily:
-        earned = config.coinsPerClear + config.dailyClearBonus;
+        final fresh = !ref
+            .read(dailyControllerProvider)
+            .isCompleted(session.dateKey!);
         ref.read(dailyControllerProvider.notifier).recordCompletion(
               dateKey: session.dateKey!,
               hintsUsed: session.hintsUsed,
               stars: stars,
             );
-        analytics.log(AnalyticsEvents.dailyCompleted, {
-          'stars': stars,
-          'hintsUsed': session.hintsUsed,
-        });
-        ref.read(statsControllerProvider.notifier).recordWin(
-              clean: cleanBadge,
-              threeStarDaily: stars == 3,
-            );
+        if (fresh) {
+          earned = config.coinsPerClear + config.dailyClearBonus;
+          analytics.log(AnalyticsEvents.dailyCompleted, {
+            'stars': stars,
+            'hintsUsed': session.hintsUsed,
+          });
+          ref.read(statsControllerProvider.notifier).recordWin(
+                clean: cleanBadge,
+                threeStarDaily: stars == 3,
+              );
+        }
 
       case GameMode.archive:
-        earned = config.archiveClearCoins;
-        ref.read(dailyControllerProvider.notifier).recordArchiveCompletion(
+        final fresh = ref
+            .read(dailyControllerProvider.notifier)
+            .recordArchiveCompletion(
               dateKey: session.dateKey!,
               hintsUsed: session.hintsUsed,
               stars: stars,
             );
-        analytics.log(AnalyticsEvents.archivePlayed, {'stars': stars});
-        ref.read(statsControllerProvider.notifier).recordWin(clean: cleanBadge);
+        if (fresh) {
+          earned = config.archiveClearCoins;
+          analytics.log(AnalyticsEvents.archivePlayed, {'stars': stars});
+          ref
+              .read(statsControllerProvider.notifier)
+              .recordWin(clean: cleanBadge);
+        }
 
       case GameMode.ladder:
         final hard = session.dateKey!.endsWith('#h');
-        earned = hard ? config.ladderHardCoins : config.ladderEasyCoins;
-        ref.read(dailyControllerProvider.notifier).recordLadderCompletion(
+        final fresh = ref
+            .read(dailyControllerProvider.notifier)
+            .recordLadderCompletion(
               ladderKey: session.dateKey!,
               hintsUsed: session.hintsUsed,
               stars: stars,
             );
-        ref.read(statsControllerProvider.notifier).recordWin(clean: cleanBadge);
+        if (fresh) {
+          earned = hard ? config.ladderHardCoins : config.ladderEasyCoins;
+          ref
+              .read(statsControllerProvider.notifier)
+              .recordWin(clean: cleanBadge);
+        }
 
       case GameMode.zen:
         final zen = ref.read(zenControllerProvider.notifier);

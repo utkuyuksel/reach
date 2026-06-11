@@ -19,6 +19,10 @@ import 'settings_controller.dart';
 class WalletController extends Notifier<int> {
   StreamSubscription<String>? _sub;
 
+  /// In-memory mirror of the persisted gift claim day, so routine coin writes
+  /// can never lose it to a storage hiccup.
+  String? _giftDateKey;
+
   @override
   int build() {
     final storage = ref.read(storageServiceProvider);
@@ -37,7 +41,10 @@ class WalletController extends Notifier<int> {
     ref.onDispose(() => _sub?.cancel());
 
     final existing = storage.loadWallet();
-    if (existing != null) return existing.coins;
+    if (existing != null) {
+      _giftDateKey = existing.giftDateKey;
+      return existing.coins;
+    }
     final start = ref.read(gameConfigProvider).startingCoins;
     storage.saveWallet(WalletRecord(coins: start));
     return start;
@@ -70,10 +77,7 @@ class WalletController extends Notifier<int> {
   // ------------------------------------------------------------ daily gift
 
   /// Whether today's home-screen gift ad is still unclaimed.
-  bool get giftAvailableToday {
-    final record = ref.read(storageServiceProvider).loadWallet();
-    return record?.giftDateKey != dateKeyFor(DateTime.now());
-  }
+  bool get giftAvailableToday => _giftDateKey != dateKeyFor(DateTime.now());
 
   /// Grant the once-daily gift (the UI shows the rewarded ad first).
   void claimDailyGift() {
@@ -113,12 +117,10 @@ class WalletController extends Notifier<int> {
   }
 
   void _persist({String? giftDateKey}) {
-    final storage = ref.read(storageServiceProvider);
-    final current = storage.loadWallet();
-    storage.saveWallet(WalletRecord(
-      coins: state,
-      giftDateKey: giftDateKey ?? current?.giftDateKey,
-    ));
+    if (giftDateKey != null) _giftDateKey = giftDateKey;
+    ref.read(storageServiceProvider).saveWallet(
+          WalletRecord(coins: state, giftDateKey: _giftDateKey),
+        );
   }
 }
 

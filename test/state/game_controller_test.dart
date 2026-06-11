@@ -209,6 +209,39 @@ void main() {
     expect(e.difficulty.id, 'daily-easy');
   });
 
+  test('restart-after-win cannot re-mint date-keyed rewards (coin pump plugged)',
+      () async {
+    final c = await _container();
+    final ctrl = c.read(gameControllerProvider.notifier);
+    final today = dateKeyFor(DateTime.now());
+    ctrl.startWithPuzzle(_puzzle(), GameMode.daily, dateKey: today);
+    ctrl.submitPath([0, 1]);
+    ctrl.submitPath([2, 3]);
+    final afterFirst = c.read(walletControllerProvider);
+    expect(c.read(gameControllerProvider)!.coinsEarned > 0, isTrue);
+
+    // Restart and re-win the same day: no coins, no double stats.
+    ctrl.restart();
+    ctrl.submitPath([0, 1]);
+    ctrl.submitPath([2, 3]);
+    expect(c.read(walletControllerProvider), afterFirst);
+    expect(c.read(gameControllerProvider)!.coinsEarned, 0);
+  });
+
+  test('backfill ticket: paid entry persists and is consumed on completion',
+      () async {
+    final c = await _container();
+    final dailyCtrl = c.read(dailyControllerProvider.notifier);
+    dailyCtrl.markBackfillPaid('2026-06-02');
+    expect(dailyCtrl.isBackfillPaid('2026-06-02'), isTrue);
+
+    final ctrl = c.read(gameControllerProvider.notifier);
+    ctrl.startWithPuzzle(_puzzle(), GameMode.archive, dateKey: '2026-06-02');
+    ctrl.submitPath([0, 1]);
+    ctrl.submitPath([2, 3]);
+    expect(dailyCtrl.isBackfillPaid('2026-06-02'), isFalse); // consumed
+  });
+
   test('session coinsEarned is set on win for the win sheet', () async {
     final c = await _container();
     final config = c.read(gameConfigProvider);

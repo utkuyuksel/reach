@@ -138,16 +138,27 @@ void main() {
   });
 
   group('clock integrity', () {
-    test('two completions within 20h record both days but credit one streak',
-        () async {
+    test('a rolled-back clock cannot re-credit an earlier day', () async {
       await setup();
       daily.recordCompletion(dateKey: dateKeyFor(clock));
-      // Roll past midnight but only 15h later (clock manipulation / time zones).
-      clock = clock.add(const Duration(hours: 15));
+      clock = clock.add(const Duration(days: 1));
       daily.recordCompletion(dateKey: dateKeyFor(clock));
-      final r = c.read(dailyControllerProvider);
-      expect(r.results.length, 2); // both days on the calendar
-      expect(r.currentStreak, 1); // but no farmed increment
+      expect(c.read(dailyControllerProvider).currentStreak, 2);
+      // Roll the clock BACK to the first day: not today's key → rejected;
+      // even if "today" matched, the gap<=0 branch gives no extra credit.
+      clock = clock.subtract(const Duration(days: 1));
+      daily.recordCompletion(dateKey: dateKeyFor(clock));
+      expect(c.read(dailyControllerProvider).currentStreak, 2);
+    });
+
+    test('honest late-night → early-morning play still credits the streak',
+        () async {
+      await setup();
+      clock = DateTime(2026, 6, 10, 23, 50);
+      daily.recordCompletion(dateKey: dateKeyFor(clock));
+      clock = DateTime(2026, 6, 11, 0, 10); // 20 minutes later, next day
+      daily.recordCompletion(dateKey: dateKeyFor(clock));
+      expect(c.read(dailyControllerProvider).currentStreak, 2);
     });
 
     test('only today\'s board can touch the streak', () async {

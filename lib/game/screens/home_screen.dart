@@ -253,7 +253,8 @@ class _NextDailyCountdownState extends State<_NextDailyCountdown> {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final midnight = DateTime(now.year, now.month, now.day + 1);
-    final left = midnight.difference(now);
+    var left = midnight.difference(now);
+    if (left.isNegative) left = Duration.zero; // midnight race → 00:00
     final h = left.inHours.toString().padLeft(2, '0');
     final m = (left.inMinutes % 60).toString().padLeft(2, '0');
     return Row(

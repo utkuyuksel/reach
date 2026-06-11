@@ -141,8 +141,13 @@ class DailyRecord {
   final String? lastRepairMonth;
 
   /// Epoch millis of the last streak-credited completion: clock-rollback
-  /// guard (a new streak increment requires ≥20h since the previous one).
+  /// guard (a new streak increment requires a minimum gap since the previous
+  /// credited one).
   final int lastCompletedAtMillis;
+
+  /// Backfill "tickets": dateKeys whose archive entry fee was paid but whose
+  /// board hasn't been completed yet — re-entry is free until it is.
+  final List<String> paidBackfills;
 
   const DailyRecord({
     this.currentStreak = 0,
@@ -154,6 +159,7 @@ class DailyRecord {
     this.brokenAtMillis = 0,
     this.lastRepairMonth,
     this.lastCompletedAtMillis = 0,
+    this.paidBackfills = const [],
   });
 
   bool isCompleted(String dateKey) => results.containsKey(dateKey);
@@ -169,6 +175,7 @@ class DailyRecord {
     int? brokenAtMillis,
     String? lastRepairMonth,
     int? lastCompletedAtMillis,
+    List<String>? paidBackfills,
   }) =>
       DailyRecord(
         currentStreak: currentStreak ?? this.currentStreak,
@@ -181,6 +188,7 @@ class DailyRecord {
         lastRepairMonth: lastRepairMonth ?? this.lastRepairMonth,
         lastCompletedAtMillis:
             lastCompletedAtMillis ?? this.lastCompletedAtMillis,
+        paidBackfills: paidBackfills ?? this.paidBackfills,
       );
 
   Map<String, dynamic> toMap() => {
@@ -193,6 +201,7 @@ class DailyRecord {
         'brokenAtMillis': brokenAtMillis,
         'lastRepairMonth': lastRepairMonth,
         'lastCompletedAtMillis': lastCompletedAtMillis,
+        'paidBackfills': paidBackfills,
       };
 
   factory DailyRecord.fromMap(Map<String, dynamic> m) {
@@ -212,6 +221,8 @@ class DailyRecord {
       brokenAtMillis: m['brokenAtMillis'] as int? ?? 0,
       lastRepairMonth: m['lastRepairMonth'] as String?,
       lastCompletedAtMillis: m['lastCompletedAtMillis'] as int? ?? 0,
+      paidBackfills:
+          (m['paidBackfills'] as List?)?.cast<String>() ?? const [],
     );
   }
 }

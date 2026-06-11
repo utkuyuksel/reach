@@ -89,12 +89,20 @@ class _DailyCalendarScreenState extends ConsumerState<DailyCalendarScreen> {
   }
 
   /// Tap on a past, uncompleted day: archive access rules + backfill price.
+  /// The fee buys a persistent "ticket" — quitting mid-board never
+  /// double-charges; re-entry is free until the board is completed.
   Future<void> _onMissedDay(DateTime date) async {
     final premium = ref.read(entitlementControllerProvider);
     final config = ref.read(gameConfigProvider);
     final daysAgo = daysBetween(date, DateTime.now());
     if (!premium && daysAgo > config.freeArchiveDays) {
       _toast('Premium unlocks the full archive.');
+      return;
+    }
+    final dailyCtrl = ref.read(dailyControllerProvider.notifier);
+    final dateKey = dateKeyFor(date);
+    if (dailyCtrl.isBackfillPaid(dateKey)) {
+      _openBoard(date, isToday: false); // already ticketed
       return;
     }
     final palette = ref.read(paletteProvider);
@@ -104,7 +112,7 @@ class _DailyCalendarScreenState extends ConsumerState<DailyCalendarScreen> {
       builder: (context) => _BackfillDialog(
         palette: palette,
         cost: config.backfillCost,
-        dateKey: dateKeyFor(date),
+        dateKey: dateKey,
       ),
     );
     if (confirmed != true || !mounted) return;
@@ -113,6 +121,7 @@ class _DailyCalendarScreenState extends ConsumerState<DailyCalendarScreen> {
       _toast('Not enough coins.');
       return;
     }
+    dailyCtrl.markBackfillPaid(dateKey);
     _haptic();
     _openBoard(date, isToday: false);
   }

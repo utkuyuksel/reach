@@ -52,11 +52,16 @@ class DailyController extends Notifier<DailyRecord> {
     final today = dateKeyFor(now());
     if (dateKey != today) return 0; // only today's board can touch the streak
 
+    // Clock-integrity model (local-only game, honest-player-first):
+    //  * only TODAY's dateKey reaches this method (checked above),
+    //  * a rolled-BACK clock yields gap <= 0 → no extra credit,
+    //  * each day is idempotent.
+    // A deliberate forward-roll can still farm days — unfixable without a
+    // server clock, and any elapsed-time debounce would punish honest
+    // midnight-crossing players while the forward-roller controls the
+    // apparent elapsed time anyway. Low stakes (coins only); accepted.
     final last = state.lastCompletedDate;
     final nowMs = now().millisecondsSinceEpoch;
-    // Clock-rollback guard: the play always records; the INCREMENT needs ≥20h.
-    final creditable =
-        nowMs - state.lastCompletedAtMillis >= const Duration(hours: 20).inMilliseconds;
 
     var freezeTokens = state.freezeTokens;
     var brokenStreak = state.brokenStreak;
@@ -69,13 +74,13 @@ class DailyController extends Notifier<DailyRecord> {
     } else {
       final gap = daysBetween(dateFromKey(last), dateFromKey(dateKey));
       if (gap <= 0) {
-        newStreak = state.currentStreak; // same-day edge: no double credit
+        newStreak = state.currentStreak; // rolled-back clock: no extra credit
       } else if (gap == 1) {
-        newStreak = creditable ? state.currentStreak + 1 : state.currentStreak;
+        newStreak = state.currentStreak + 1;
       } else if (gap - 1 <= freezeTokens) {
         usedFreezes = gap - 1;
         freezeTokens -= usedFreezes;
-        newStreak = creditable ? state.currentStreak + 1 : state.currentStreak;
+        newStreak = state.currentStreak + 1;
       } else {
         // Break: park the old streak so a Repair can restore it.
         brokenStreak = state.currentStreak;
@@ -98,7 +103,7 @@ class DailyController extends Notifier<DailyRecord> {
       freezeTokens: freezeTokens,
       brokenStreak: brokenStreak,
       brokenAtMillis: brokenAt,
-      lastCompletedAtMillis: creditable ? nowMs : state.lastCompletedAtMillis,
+      lastCompletedAtMillis: nowMs,
     );
     _save(updated);
     if (usedFreezes > 0) {
@@ -176,14 +181,28 @@ class DailyController extends Notifier<DailyRecord> {
 
   // ----------------------------------------------------- archive / backfill
 
+  /// Whether [dateKey]'s archive entry fee was already paid (an unfinished
+  /// "ticket" — re-entry is free until the board is completed).
+  bool isBackfillPaid(String dateKey) =>
+      state.paidBackfills.contains(dateKey);
+
+  /// Remember a paid archive entry so quitting mid-board never double-charges.
+  void markBackfillPaid(String dateKey) {
+    if (isBackfillPaid(dateKey)) return;
+    _save(state.copyWith(
+      paidBackfills: [...state.paidBackfills, dateKey],
+    ));
+  }
+
   /// Record an archive/backfill completion: fills the calendar (counts toward
   /// the monthly medal, visibly distinct) but never touches the streak.
-  void recordArchiveCompletion({
+  /// Consumes the paid ticket. Returns false if the day was already complete.
+  bool recordArchiveCompletion({
     required String dateKey,
     int hintsUsed = 0,
     int stars = 3,
   }) {
-    if (state.isCompleted(dateKey)) return;
+    if (state.isCompleted(dateKey)) return false;
     final results = Map<String, DailyResult>.from(state.results)
       ..[dateKey] = DailyResult(
         dateKey: dateKey,
@@ -191,19 +210,25 @@ class DailyController extends Notifier<DailyRecord> {
         stars: stars,
         backfilled: true,
       );
-    _save(state.copyWith(results: results));
+    _save(state.copyWith(
+      results: results,
+      paidBackfills:
+          state.paidBackfills.where((k) => k != dateKey).toList(),
+    ));
+    return true;
   }
 
   // ------------------------------------------------------------- calendar
 
   /// Record a Daily Ladder tier completion (key 'YYYY-MM-DD#e' / '#h').
   /// Ladder boards never touch the streak or the medal calendar.
-  void recordLadderCompletion({
+  /// Returns false if this tier was already completed.
+  bool recordLadderCompletion({
     required String ladderKey,
     int hintsUsed = 0,
     int stars = 3,
   }) {
-    if (state.isCompleted(ladderKey)) return;
+    if (state.isCompleted(ladderKey)) return false;
     final results = Map<String, DailyResult>.from(state.results)
       ..[ladderKey] = DailyResult(
         dateKey: ladderKey,
@@ -211,6 +236,7 @@ class DailyController extends Notifier<DailyRecord> {
         stars: stars,
       );
     _save(state.copyWith(results: results));
+    return true;
   }
 
   /// Completions (live + backfilled) in 'YYYY-MM' [monthKey]. Only plain
