@@ -8,7 +8,10 @@ import 'package:audioplayers/audioplayers.dart';
 /// The calm WAVs in assets/sounds/ are synthesized (see _spec/synth_sfx.py).
 abstract class SoundService {
   Future<void> init();
-  void clear();
+
+  /// [combo] = groups cleared so far on this board (1-based). Implementations
+  /// may raise the pitch slightly as the combo grows — a gentle flow cue.
+  void clear({int combo = 1});
   void win();
   void tap();
   void invalid();
@@ -22,7 +25,7 @@ class NoopSoundService implements SoundService {
   @override
   Future<void> init() async {}
   @override
-  void clear() {}
+  void clear({int combo = 1}) {}
   @override
   void win() {}
   @override
@@ -70,7 +73,13 @@ class AudioPlayersSoundService implements SoundService {
   }
 
   @override
-  void clear() => _fire(_clear, 'sounds/clear.wav');
+  void clear({int combo = 1}) {
+    // Each consecutive clear on a board sits a touch higher — flow you can
+    // hear without ever getting loud. Capped well below chipmunk territory.
+    final steps = (combo - 1).clamp(0, 5);
+    _clear.setPlaybackRate(1.0 + 0.045 * steps).catchError((_) {});
+    _fire(_clear, 'sounds/clear.wav');
+  }
   @override
   void win() => _fire(_win, 'sounds/win.wav');
   @override

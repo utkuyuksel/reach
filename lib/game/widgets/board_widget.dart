@@ -55,6 +55,11 @@ class _BoardWidgetState extends State<BoardWidget>
   List<int> _reject = const [];
   double _cell = 0;
 
+  /// Pop "echoes" of just-cleared tiles: a brief scale+fade+drift so a clear
+  /// lands physically instead of tiles silently vanishing.
+  final List<_Ghost> _ghosts = [];
+  int _ghostSerial = 0;
+
   /// Looping driver for the tutorial coach finger; created only when a
   /// [BoardWidget.coachPath] is supplied (so the real game pays for no ticker).
   AnimationController? _coach;
@@ -71,6 +76,30 @@ class _BoardWidgetState extends State<BoardWidget>
   void didUpdateWidget(BoardWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.coachPath.isNotEmpty) _ensureCoach();
+    _spawnGhosts(oldWidget.grid, widget.grid);
+  }
+
+  /// Diff the grids: every tile that just disappeared gets a pop echo.
+  /// Undo/restart only ADD tiles, and a fresh board swaps full→full, so
+  /// ghosts appear exactly on clears.
+  void _spawnGhosts(Grid old, Grid next) {
+    if (old.rows != next.rows || old.cols != next.cols) return;
+    final batch = <int>[];
+    var order = 0;
+    for (var i = 0; i < old.totalCells; i++) {
+      final t = old.at(i);
+      if (t != null && next.at(i) == null) {
+        final id = _ghostSerial++;
+        batch.add(id);
+        _ghosts.add(_Ghost(id: id, index: i, value: t.value, order: order++));
+      }
+    }
+    if (batch.isEmpty) return;
+    setState(() {});
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (!mounted) return;
+      setState(() => _ghosts.removeWhere((g) => batch.contains(g.id)));
+    });
   }
 
   @override
@@ -200,6 +229,18 @@ class _BoardWidgetState extends State<BoardWidget>
                       height: _cell,
                       child: _cellWidget(i),
                     ),
+                  for (final g in _ghosts)
+                    Positioned(
+                      left: (g.index % cols) * stride,
+                      top: _topPad + (g.index ~/ cols) * stride,
+                      width: _cell,
+                      height: _cell,
+                      child: _GhostPop(
+                        ghost: g,
+                        palette: widget.palette,
+                        size: _cell,
+                      ),
+                    ),
                   if (_path.isNotEmpty) _sumChip(stride),
                   if (_coach != null &&
                       _path.isEmpty &&
@@ -321,6 +362,85 @@ class _BoardWidgetState extends State<BoardWidget>
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// A just-cleared tile's data, kept briefly for its pop echo.
+class _Ghost {
+  final int id;
+  final int index;
+  final int value;
+
+  /// Position within the cleared group (drives the stagger).
+  final int order;
+
+  const _Ghost({
+    required this.id,
+    required this.index,
+    required this.value,
+    required this.order,
+  });
+}
+
+/// The pop echo itself: a match-coloured tile that swells, lifts, and fades —
+/// staggered along the traced path so the clear reads as a ripple.
+class _GhostPop extends StatelessWidget {
+  final _Ghost ghost;
+  final GamePalette palette;
+  final double size;
+
+  const _GhostPop({
+    required this.ghost,
+    required this.palette,
+    required this.size,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const total = 620.0; // ms, including the longest stagger
+    final delay = (ghost.order * 45.0).clamp(0.0, 220.0);
+    return IgnorePointer(
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 620),
+        curve: Curves.linear,
+        builder: (context, raw, _) {
+          // Re-map global time so each tile starts after its stagger delay.
+          final t =
+              ((raw * total - delay) / (total - 220.0)).clamp(0.0, 1.0);
+          if (t == 0) return const SizedBox.shrink();
+          final eased = Curves.easeOutCubic.transform(t);
+          return Opacity(
+            opacity: (1 - eased) * 0.85,
+            child: Transform.translate(
+              offset: Offset(0, -10 * eased),
+              child: Transform.scale(
+                scale: 1 + 0.22 * eased,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [palette.good, palette.goodDeep],
+                    ),
+                    borderRadius: BorderRadius.circular(size * 0.24),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${ghost.value}',
+                    style: AppText.fraunces(
+                      size: size * 0.40,
+                      weight: 600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

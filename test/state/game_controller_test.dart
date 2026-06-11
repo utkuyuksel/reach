@@ -319,6 +319,47 @@ void main() {
     expect(c.read(gameControllerProvider)!.stuck, isFalse);
   });
 
+  test('rewindToSafe returns to the last clearable state and clears stuck',
+      () async {
+    final c = await _container();
+    // 1×4 of 2s, target 4: clearing the middle pair strands cells 0 and 3.
+    final grid = Grid(rows: 1, cols: 4, cells: [
+      Tile(id: 0, value: 2),
+      Tile(id: 1, value: 2),
+      Tile(id: 2, value: 2),
+      Tile(id: 3, value: 2),
+    ]);
+    final line = Puzzle(
+      initialGrid: grid,
+      target: 4,
+      difficulty: Difficulty.easy,
+      seed: 0,
+      groups: const [
+        [0, 1],
+        [2, 3],
+      ],
+    );
+    final ctrl = c.read(gameControllerProvider.notifier);
+    ctrl.startWithPuzzle(line, GameMode.zen);
+
+    ctrl.submitPath([1, 2]); // dead end
+    expect(c.read(gameControllerProvider)!.stuck, isTrue);
+
+    final steps = ctrl.rewindToSafe();
+    expect(steps, 1); // back to the full, clearable board
+    final s = c.read(gameControllerProvider)!;
+    expect(s.stuck, isFalse);
+    expect(s.state.grid.occupiedIndices().length, 4);
+
+    // Already safe → no-op.
+    expect(ctrl.rewindToSafe(), 0);
+
+    // And the board is genuinely winnable from here.
+    ctrl.submitPath([0, 1]);
+    ctrl.submitPath([2, 3]);
+    expect(c.read(gameControllerProvider)!.isWon, isTrue);
+  });
+
   test('a rejected trace counts as a wrong trace (lowers stars)', () async {
     final c = await _container();
     final config = c.read(gameConfigProvider);

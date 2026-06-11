@@ -57,6 +57,9 @@ class AnalyticsEvents {
 
   // Meta.
   static const badgeEarned = 'badge_earned';
+
+  // Dead-end recovery.
+  static const safeRewind = 'safe_rewind';
 }
 
 /// Does nothing (tests, or until a real provider is wired).

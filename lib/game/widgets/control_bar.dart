@@ -48,7 +48,7 @@ class ControlBar extends StatelessWidget {
           palette: palette,
           onTap: hintAvailable ? onHint : null,
           badge: (showAdBadge && hintAvailable)
-              ? _AdBadge(palette: palette)
+              ? AdBadge(palette: palette)
               : null,
         ),
       ],
@@ -56,9 +56,10 @@ class ControlBar extends StatelessWidget {
   }
 }
 
-class _AdBadge extends StatelessWidget {
+/// Small "this costs one rewarded ad" marker, overlaid on a button corner.
+class AdBadge extends StatelessWidget {
   final GamePalette palette;
-  const _AdBadge({required this.palette});
+  const AdBadge({super.key, required this.palette});
 
   @override
   Widget build(BuildContext context) {

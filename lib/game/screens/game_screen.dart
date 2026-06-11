@@ -81,7 +81,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       _sfx((s) => s.win());
     } else if (after.found > before.found) {
       _haptic(HapticFeedback.mediumImpact);
-      _sfx((s) => s.clear());
+      _sfx((s) => s.clear(combo: after.found));
     } else if (!accepted && path.length >= 2) {
       _sfx((s) => s.invalid()); // wrong-sum trace
     }
@@ -166,6 +166,25 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         ),
       ),
     );
+  }
+
+  /// Safe Rewind out of a dead end: free players watch one rewarded ad,
+  /// Premium players rewind instantly (a quiet perk).
+  Future<void> _onSafeRewind() async {
+    if (_adBusy) return;
+    final premium = ref.read(entitlementControllerProvider);
+    if (!premium) {
+      setState(() => _adBusy = true);
+      final earned = await ref.read(adServiceProvider).showRewardedAd();
+      if (!mounted) return;
+      setState(() => _adBusy = false);
+      ref
+          .read(analyticsServiceProvider)
+          .log(AnalyticsEvents.rewardedAdShown, {'earned': earned});
+      if (!earned) return;
+    }
+    _haptic(HapticFeedback.mediumImpact);
+    ref.read(gameControllerProvider.notifier).rewindToSafe();
   }
 
   /// One rewarded ad doubles this win's coins (free players only).
@@ -289,6 +308,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 Positioned.fill(
                   child: _StuckOverlay(
                     palette: palette,
+                    showAdBadge: !premium,
+                    onSafeRewind: _adBusy ? null : _onSafeRewind,
                     onUndo: () {
                       _haptic(HapticFeedback.selectionClick);
                       ref.read(gameControllerProvider.notifier).undo();
@@ -482,15 +503,21 @@ class _TopBar extends StatelessWidget {
 }
 
 /// A clear, gentle "no moves left" prompt shown only when the player has
-/// genuinely run out of moves (peg-solitaire style). Not a fail screen — two
-/// obvious ways forward: step back (Undo) or restart the board.
+/// genuinely run out of moves (peg-solitaire style). Not a fail screen —
+/// three ways forward: Safe Rewind (one rewarded ad jumps back to the last
+/// state the board could still be cleared from; instant for Premium),
+/// step back one move (Undo), or restart the board.
 class _StuckOverlay extends StatelessWidget {
   final GamePalette palette;
+  final bool showAdBadge;
+  final VoidCallback? onSafeRewind;
   final VoidCallback onUndo;
   final VoidCallback onRestart;
 
   const _StuckOverlay({
     required this.palette,
+    required this.showAdBadge,
+    required this.onSafeRewind,
     required this.onUndo,
     required this.onRestart,
   });
@@ -547,8 +574,16 @@ class _StuckOverlay extends StatelessWidget {
                   SoftButton(
                     icon: Icons.undo_rounded,
                     palette: palette,
-                    primary: true,
                     onTap: onUndo,
+                  ),
+                  const SizedBox(width: 12),
+                  // Safe Rewind: jump back to the last clearable state.
+                  SoftButton(
+                    icon: Icons.settings_backup_restore_rounded,
+                    palette: palette,
+                    primary: true,
+                    onTap: onSafeRewind,
+                    badge: showAdBadge ? AdBadge(palette: palette) : null,
                   ),
                 ],
               ),

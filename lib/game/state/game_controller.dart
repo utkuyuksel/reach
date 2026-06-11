@@ -189,6 +189,32 @@ class GameController extends Notifier<GameSession?> {
     ref.read(analyticsServiceProvider).log(AnalyticsEvents.undo);
   }
 
+  /// Safe Rewind: walk the undo history back to the most recent state from
+  /// which the board can still be fully cleared. The escape hatch for a dead
+  /// end without tapping undo six times (rewarded-ad gated for free players;
+  /// a Premium perk otherwise). Returns the number of steps rewound (0 = the
+  /// current state is already safe).
+  int rewindToSafe() {
+    final session = state;
+    if (session == null || session.isWon) return 0;
+    final maxLen = session.puzzle.difficulty.groupMax;
+    var s = session.state;
+    var steps = 0;
+    while (s.canUndo &&
+        !Solver.isSolvable(s.grid, s.target, maxLen: maxLen)) {
+      s = s.undo();
+      steps++;
+    }
+    if (steps == 0) return 0;
+    _winRecorded = false;
+    state = session.copyWith(state: s, hintCells: const [], stuck: false);
+    ref.read(analyticsServiceProvider).log(
+      AnalyticsEvents.safeRewind,
+      {'steps': steps, 'mode': session.mode.name},
+    );
+    return steps;
+  }
+
   void restart() {
     final session = state;
     if (session == null) return;
