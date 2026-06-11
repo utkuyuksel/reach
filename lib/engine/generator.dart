@@ -117,6 +117,50 @@ class Generator {
     return best!;
   }
 
+  /// Decorate [puzzle] with modifier tiles — applied AFTER the solvable
+  /// partition is carved, so values, groups, and solvability are untouched.
+  /// Deterministic in `puzzle.seed`: the same board always decorates the same
+  /// way. Gold and veiled cells are disjoint; counts are clamped to the board.
+  static Puzzle decorate(Puzzle puzzle, {int veiled = 0, int gold = 0}) {
+    if (veiled <= 0 && gold <= 0) return puzzle;
+    final grid = puzzle.initialGrid;
+    final rng = DeterministicRng(puzzle.seed ^ 0x5DEC0);
+
+    // Deterministic Fisher–Yates over the occupied cells.
+    final cells = grid.occupiedIndices();
+    for (var i = cells.length - 1; i > 0; i--) {
+      final j = rng.nextInt(i + 1);
+      final t = cells[i];
+      cells[i] = cells[j];
+      cells[j] = t;
+    }
+
+    final goldCount = gold.clamp(0, cells.length);
+    final veilCount = veiled.clamp(0, cells.length - goldCount);
+    final goldSet = cells.take(goldCount).toSet();
+    final veilSet = cells.skip(goldCount).take(veilCount).toSet();
+
+    final newCells = List<Tile?>.from(grid.cells);
+    for (final i in goldSet) {
+      final t = newCells[i]!;
+      newCells[i] =
+          Tile(id: t.id, value: t.value, modifier: TileModifier.gold);
+    }
+    for (final i in veilSet) {
+      final t = newCells[i]!;
+      newCells[i] =
+          Tile(id: t.id, value: t.value, modifier: TileModifier.veiled);
+    }
+
+    return Puzzle(
+      initialGrid: Grid(rows: grid.rows, cols: grid.cols, cells: newCells),
+      target: puzzle.target,
+      difficulty: puzzle.difficulty,
+      seed: puzzle.seed,
+      groups: puzzle.groups,
+    );
+  }
+
   /// Partition [total] into parts each in [gmin, gmax], never leaving a
   /// remainder smaller than [gmin]. Returns null if impossible.
   static List<int>? _composeSizes(

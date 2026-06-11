@@ -4,6 +4,7 @@ import '../../engine/difficulty.dart';
 import '../../engine/generator.dart';
 import '../../engine/models/game_state.dart';
 import '../../engine/models/puzzle.dart';
+import '../../engine/models/tile.dart';
 import '../../engine/solver.dart';
 import '../../services/analytics_service.dart';
 import '../../util/date_key.dart';
@@ -98,9 +99,32 @@ class GameController extends Notifier<GameSession?> {
     final position = cleared % Difficulty.clearsPerLevel; // 0..9 in chapter
     final isFinale = position == Difficulty.clearsPerLevel - 1;
     final difficulty = _modulated(base, position, isFinale);
-    final puzzle =
+    var puzzle =
         Generator.generateTuned(difficulty: difficulty, seed: _freshSeed());
+    puzzle = Generator.decorate(
+      puzzle,
+      gold: _goldFor(cleared, isFinale, puzzle.seed),
+      veiled: _veiledFor(cleared, puzzle.seed),
+    );
     startWithPuzzle(puzzle, GameMode.zen, isFinale: isFinale);
+  }
+
+  /// Modifier schedule — one new type per chapter, gently (the Toon Blast
+  /// rollout lesson). Gold from chapter 2: every finale + ~every 3rd board.
+  int _goldFor(int cleared, bool isFinale, int seed) {
+    final chapter = cleared ~/ Difficulty.clearsPerLevel + 1;
+    if (chapter < 2) return 0;
+    if (isFinale) return 1 + (chapter >= 5 ? 1 : 0);
+    return seed % 3 == 0 ? 1 : 0;
+  }
+
+  /// Veiled tiles from chapter 3, scaling slowly with the chapter and never
+  /// fogging more than a small corner of the board.
+  int _veiledFor(int cleared, int seed) {
+    final chapter = cleared ~/ Difficulty.clearsPerLevel + 1;
+    if (chapter < 3) return 0;
+    final base = 2 + ((chapter - 3) ~/ 2);
+    return (base + seed % 2).clamp(2, 6);
   }
 
   void nextZen() => startZen();
@@ -320,6 +344,12 @@ class GameController extends Notifier<GameSession?> {
         final zen = ref.read(zenControllerProvider.notifier);
         final cleared = zen.recordClear(clean: flowClean);
         earned = config.coinsPerClear * (session.isFinale ? 2 : 1);
+
+        // Gold tiles: a full clear collects every gold on the board.
+        final goldTiles = session.puzzle.initialGrid.cells
+            .where((t) => t != null && t.modifier == TileModifier.gold)
+            .length;
+        earned += goldTiles * config.goldTileCoins;
 
         // Chapter chest: the finale's clear closes the chapter.
         if (cleared % Difficulty.clearsPerLevel == 0) {

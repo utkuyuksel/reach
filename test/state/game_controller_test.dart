@@ -242,6 +242,36 @@ void main() {
     expect(dailyCtrl.isBackfillPaid('2026-06-02'), isFalse); // consumed
   });
 
+  test('gold tiles pay their bonus on a Zen clear', () async {
+    final c = await _container();
+    final config = c.read(gameConfigProvider);
+    final ctrl = c.read(gameControllerProvider.notifier);
+    // Same 2×2 board, but with one gold tile.
+    final grid = Grid(rows: 2, cols: 2, cells: const [
+      Tile(id: 0, value: 1, modifier: TileModifier.gold),
+      Tile(id: 1, value: 3),
+      Tile(id: 2, value: 3),
+      Tile(id: 3, value: 1),
+    ]);
+    final golden = Puzzle(
+      initialGrid: grid,
+      target: 4,
+      difficulty: Difficulty.easy,
+      seed: 0,
+      groups: const [
+        [0, 1],
+        [2, 3],
+      ],
+    );
+    final start = c.read(walletControllerProvider);
+    ctrl.startWithPuzzle(golden, GameMode.zen);
+    ctrl.submitPath([0, 1]);
+    ctrl.submitPath([2, 3]);
+    final earned = c.read(gameControllerProvider)!.coinsEarned;
+    expect(earned >= config.coinsPerClear + config.goldTileCoins, isTrue);
+    expect(c.read(walletControllerProvider), start + earned);
+  });
+
   test('session coinsEarned is set on win for the win sheet', () async {
     final c = await _container();
     final config = c.read(gameConfigProvider);

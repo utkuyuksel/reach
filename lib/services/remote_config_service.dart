@@ -27,6 +27,9 @@ class GameConfig {
   final int chainMilestone2; // at chain 7
   final int chainMilestone3; // at chain 15
 
+  /// Bonus coins per gold tile on a cleared board (Zen modifier).
+  final int goldTileCoins;
+
   // --- Coin economy: sinks ---
   final int hintCost;
 
@@ -86,6 +89,7 @@ class GameConfig {
     this.chainMilestone1 = 10,
     this.chainMilestone2 = 20,
     this.chainMilestone3 = 40,
+    this.goldTileCoins = 5,
     this.hintCost = 20,
     this.streakFreezeCost = 150,
     this.maxFreezeTokens = 2,

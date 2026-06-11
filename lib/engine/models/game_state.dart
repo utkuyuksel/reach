@@ -1,6 +1,7 @@
 import '../solver.dart';
 import 'grid.dart';
 import 'puzzle.dart';
+import 'tile.dart';
 
 enum GameStatus { playing, won }
 
@@ -72,7 +73,7 @@ class GameState {
   /// a gentle "undo / hint" prompt rather than silently rejecting the move.
   GameState submitPath(List<int> path) {
     if (!isClearable(path)) return this;
-    final next = grid.cleared(path);
+    final next = _unveilAround(grid.cleared(path), path);
     final won = next.occupiedIndices().isEmpty;
     return GameState(
       puzzle: puzzle,
@@ -80,6 +81,24 @@ class GameState {
       clearedGroups: [...clearedGroups, List<int>.unmodifiable(path)],
       status: won ? GameStatus.won : GameStatus.playing,
     );
+  }
+
+  /// Lift the veil from tiles orthogonally adjacent to the just-cleared
+  /// [path] — clearing the edges of the fog is how veiled boards open up.
+  static Grid _unveilAround(Grid grid, List<int> path) {
+    final toReveal = <int>{};
+    for (final cleared in path) {
+      for (final n in grid.neighborsOf(cleared)) {
+        final t = grid.at(n);
+        if (t != null && t.modifier == TileModifier.veiled) toReveal.add(n);
+      }
+    }
+    if (toReveal.isEmpty) return grid;
+    final cells = List<Tile?>.from(grid.cells);
+    for (final i in toReveal) {
+      cells[i] = cells[i]!.unveiled();
+    }
+    return Grid(rows: grid.rows, cols: grid.cols, cells: cells);
   }
 
   /// Whether the player can still make ANY move (some connected path sums to

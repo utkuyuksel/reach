@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../engine/models/grid.dart';
+import '../../engine/models/tile.dart';
 import '../theme/app_text.dart';
 import '../theme/palette.dart';
 import 'tile_widget.dart';
@@ -125,6 +126,11 @@ class _BoardWidgetState extends State<BoardWidget>
   }
 
   bool get _isMatch => _path.isNotEmpty && _sum == widget.target;
+
+  /// While a veiled tile is in the trace, the running sum stays a mystery —
+  /// the match-green state is the only tell. Probing the fog is the game.
+  bool get _pathHasVeiled => _path.any(
+      (i) => _grid.at(i)?.modifier == TileModifier.veiled);
 
   int? _cellAt(Offset p) {
     final stride = _cell + _gap;
@@ -281,6 +287,8 @@ class _BoardWidgetState extends State<BoardWidget>
               palette: widget.palette,
               size: _cell,
               colorblind: widget.colorblind,
+              veiled: tile.modifier == TileModifier.veiled,
+              gold: tile.modifier == TileModifier.gold,
             ),
     );
   }
@@ -354,7 +362,7 @@ class _BoardWidgetState extends State<BoardWidget>
             ],
           ),
           child: Text(
-            '$_sum',
+            _pathHasVeiled && !match ? '?' : '$_sum',
             style: AppText.mono(
               size: 13,
               weight: FontWeight.w500,

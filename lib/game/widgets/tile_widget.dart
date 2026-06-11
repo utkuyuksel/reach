@@ -17,6 +17,12 @@ class TileWidget extends StatelessWidget {
   final double size;
   final bool colorblind;
 
+  /// The value is hidden behind a "?" until a neighbouring group clears.
+  final bool veiled;
+
+  /// Pays bonus coins on the board clear (small coin glint, shape-based).
+  final bool gold;
+
   const TileWidget({
     super.key,
     required this.value,
@@ -24,6 +30,8 @@ class TileWidget extends StatelessWidget {
     required this.palette,
     required this.size,
     this.colorblind = false,
+    this.veiled = false,
+    this.gold = false,
   });
 
   @override
@@ -54,15 +62,37 @@ class TileWidget extends StatelessWidget {
       child: Stack(
         children: [
           Center(
-            child: Text(
-              '$value',
-              style: AppText.fraunces(
-                size: size * 0.40,
-                weight: 600,
-                color: textColor,
+            child: veiled
+                ? Text(
+                    '?',
+                    style: AppText.fraunces(
+                      size: size * 0.40,
+                      weight: 600,
+                      color: textColor.withValues(alpha: 0.45),
+                    ),
+                  )
+                : Text(
+                    '$value',
+                    style: AppText.fraunces(
+                      size: size * 0.40,
+                      weight: 600,
+                      color: textColor,
+                    ),
+                  ),
+          ),
+          // Gold glint: a small coin dot, top-left (shape, not colour alone).
+          if (gold)
+            Positioned(
+              top: 5,
+              left: 6,
+              child: Icon(
+                Icons.monetization_on_rounded,
+                size: 13,
+                color: state == TileState.match || state == TileState.path
+                    ? Colors.white
+                    : palette.accent,
               ),
             ),
-          ),
           // Match-ready: a ✓ so validity reads without relying on colour.
           // Always shown; the colourblind setting makes it more prominent.
           if (state == TileState.match)
