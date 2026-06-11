@@ -30,6 +30,14 @@ class GameConfig {
   /// Bonus coins per gold tile on a cleared board (Zen modifier).
   final int goldTileCoins;
 
+  // --- Weekly mosaic event ---
+  /// Total cells in the weekly mosaic artwork (7×7).
+  final int mosaicSize;
+
+  /// Cells revealed per cleared board (any mode); Premium reveals one more.
+  final int mosaicRevealPerClear;
+  final int premiumMosaicBonus;
+
   // --- Coin economy: sinks ---
   final int hintCost;
 
@@ -90,6 +98,9 @@ class GameConfig {
     this.chainMilestone2 = 20,
     this.chainMilestone3 = 40,
     this.goldTileCoins = 5,
+    this.mosaicSize = 49,
+    this.mosaicRevealPerClear = 3,
+    this.premiumMosaicBonus = 1,
     this.hintCost = 20,
     this.streakFreezeCost = 150,
     this.maxFreezeTokens = 2,

@@ -1,4 +1,5 @@
 import 'models/grid.dart';
+import 'models/tile.dart';
 import 'models/puzzle.dart';
 
 /// Solvability + safe hints for the find-and-clear mechanic.
@@ -45,6 +46,7 @@ class Solver {
   /// Early-exits on the first move found.
   static bool hasMove(Grid grid, int target, {int maxLen = 64}) {
     for (final start in grid.occupiedIndices()) {
+      if (grid.at(start)!.modifier == TileModifier.locked) continue;
       if (_hasPath(grid, target, start, 1 << start, grid.at(start)!.value,
           maxLen)) {
         return true;
@@ -64,9 +66,14 @@ class Solver {
     if (sum == target && _popcount(mask) >= 2) return true;
     if (sum >= target || _popcount(mask) >= maxLen) return false;
     for (final nb in grid.neighborsOf(last)) {
-      if (grid.at(nb) == null || (mask & (1 << nb)) != 0) continue;
+      final t = grid.at(nb);
+      if (t == null ||
+          t.modifier == TileModifier.locked ||
+          (mask & (1 << nb)) != 0) {
+        continue;
+      }
       if (_hasPath(grid, target, nb, mask | (1 << nb),
-          sum + grid.at(nb)!.value, maxLen)) {
+          sum + t.value, maxLen)) {
         return true;
       }
     }
@@ -79,7 +86,13 @@ class Solver {
     final partition =
         findPartition(grid, puzzle.target, maxLen: puzzle.difficulty.groupMax);
     if (partition == null || partition.isEmpty) return null;
-    return partition.first;
+    // Never hint a group the player can't trace yet (contains a locked tile).
+    for (final group in partition) {
+      final traceable = group.every(
+          (i) => grid.at(i)!.modifier != TileModifier.locked);
+      if (traceable) return group;
+    }
+    return partition.first; // all gated (transient) — show the first anyway
   }
 
   /// Count the distinct connected, *traceable* paths that sum to [target] on

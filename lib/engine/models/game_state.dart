@@ -58,6 +58,7 @@ class GameState {
       if (!seen.add(cell)) return false; // repeated cell
       final tile = grid.at(cell);
       if (tile == null) return false; // already cleared / empty
+      if (tile.modifier == TileModifier.locked) return false; // still locked
       if (i > 0 && !grid.areOrthogonalNeighbors(path[i - 1], cell)) {
         return false; // not a connected trace
       }
@@ -73,7 +74,7 @@ class GameState {
   /// a gentle "undo / hint" prompt rather than silently rejecting the move.
   GameState submitPath(List<int> path) {
     if (!isClearable(path)) return this;
-    final next = _unveilAround(grid.cleared(path), path);
+    final next = _releaseAround(grid.cleared(path), path);
     final won = next.occupiedIndices().isEmpty;
     return GameState(
       puzzle: puzzle,
@@ -83,20 +84,25 @@ class GameState {
     );
   }
 
-  /// Lift the veil from tiles orthogonally adjacent to the just-cleared
-  /// [path] — clearing the edges of the fog is how veiled boards open up.
-  static Grid _unveilAround(Grid grid, List<int> path) {
-    final toReveal = <int>{};
+  /// Lift veils and open locks on tiles orthogonally adjacent to the
+  /// just-cleared [path] — clearing the edges is how fogged and locked
+  /// boards open up.
+  static Grid _releaseAround(Grid grid, List<int> path) {
+    final toRelease = <int>{};
     for (final cleared in path) {
       for (final n in grid.neighborsOf(cleared)) {
         final t = grid.at(n);
-        if (t != null && t.modifier == TileModifier.veiled) toReveal.add(n);
+        if (t != null &&
+            (t.modifier == TileModifier.veiled ||
+                t.modifier == TileModifier.locked)) {
+          toRelease.add(n);
+        }
       }
     }
-    if (toReveal.isEmpty) return grid;
+    if (toRelease.isEmpty) return grid;
     final cells = List<Tile?>.from(grid.cells);
-    for (final i in toReveal) {
-      cells[i] = cells[i]!.unveiled();
+    for (final i in toRelease) {
+      cells[i] = cells[i]!.released();
     }
     return Grid(rows: grid.rows, cols: grid.cols, cells: cells);
   }

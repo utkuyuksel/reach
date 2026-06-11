@@ -45,3 +45,11 @@ int daysInMonth(String monthKey) {
   final m = int.parse(parts[1]);
   return DateTime(y, m + 1, 0).day;
 }
+
+/// The Monday of [date]'s week, as a 'YYYY-MM-DD' key — the weekly-event
+/// identifier (and, via `dailySeed`, its deterministic art seed).
+String weekKeyFor(DateTime date) {
+  final monday = DateTime(date.year, date.month, date.day)
+      .subtract(Duration(days: date.weekday - 1));
+  return dateKeyFor(monday);
+}

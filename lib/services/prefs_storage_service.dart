@@ -15,6 +15,7 @@ class PrefsStorageService implements StorageService {
   static const _kZen = 'reach.zen.v1';
   static const _kWallet = 'reach.wallet.v1';
   static const _kStats = 'reach.stats.v1';
+  static const _kMosaic = 'reach.mosaic.v1';
 
   late SharedPreferences _prefs;
 
@@ -23,6 +24,7 @@ class PrefsStorageService implements StorageService {
   DailyRecord _daily = const DailyRecord();
   ZenRecord _zen = const ZenRecord();
   StatsRecord _stats = const StatsRecord();
+  MosaicRecord _mosaic = const MosaicRecord();
   WalletRecord? _wallet;
 
   @override
@@ -33,6 +35,7 @@ class PrefsStorageService implements StorageService {
     _daily = _readMap(_kDaily, DailyRecord.fromMap) ?? const DailyRecord();
     _zen = _readMap(_kZen, ZenRecord.fromMap) ?? const ZenRecord();
     _stats = _readMap(_kStats, StatsRecord.fromMap) ?? const StatsRecord();
+    _mosaic = _readMap(_kMosaic, MosaicRecord.fromMap) ?? const MosaicRecord();
     _wallet = _readMap(_kWallet, WalletRecord.fromMap);
   }
 
@@ -92,6 +95,15 @@ class PrefsStorageService implements StorageService {
   }
 
   @override
+  MosaicRecord loadMosaic() => _mosaic;
+
+  @override
+  Future<void> saveMosaic(MosaicRecord record) async {
+    _mosaic = record;
+    await _prefs.setString(_kMosaic, jsonEncode(record.toMap()));
+  }
+
+  @override
   WalletRecord? loadWallet() => _wallet;
 
   @override
@@ -108,6 +120,7 @@ class InMemoryStorageService implements StorageService {
   DailyRecord _daily = const DailyRecord();
   ZenRecord _zen = const ZenRecord();
   StatsRecord _stats = const StatsRecord();
+  MosaicRecord _mosaic = const MosaicRecord();
   WalletRecord? _wallet;
 
   @override
@@ -137,6 +150,11 @@ class InMemoryStorageService implements StorageService {
   StatsRecord loadStats() => _stats;
   @override
   Future<void> saveStats(StatsRecord record) async => _stats = record;
+
+  @override
+  MosaicRecord loadMosaic() => _mosaic;
+  @override
+  Future<void> saveMosaic(MosaicRecord record) async => _mosaic = record;
 
   @override
   WalletRecord? loadWallet() => _wallet;

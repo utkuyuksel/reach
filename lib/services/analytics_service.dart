@@ -60,6 +60,9 @@ class AnalyticsEvents {
 
   // Dead-end recovery.
   static const safeRewind = 'safe_rewind';
+
+  // Weekly mosaic event.
+  static const mosaicComplete = 'mosaic_complete';
 }
 
 /// Does nothing (tests, or until a real provider is wired).

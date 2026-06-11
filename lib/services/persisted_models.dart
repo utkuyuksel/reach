@@ -290,6 +290,52 @@ class ZenRecord {
       );
 }
 
+/// The weekly mosaic event: every cleared board (any mode) reveals a few
+/// cells of a deterministic generative artwork; finished weeks are banked
+/// into a permanent gallery (the Block Blast Adventure pattern, with the
+/// missing gallery fixed).
+class MosaicRecord {
+  /// Monday-of-week 'YYYY-MM-DD' key of the week in progress.
+  final String? weekKey;
+
+  /// Cells revealed so far this week.
+  final int revealed;
+
+  /// Past weeks: weekKey → revealed count at week end (complete when it
+  /// reached the mosaic size).
+  final Map<String, int> gallery;
+
+  const MosaicRecord({
+    this.weekKey,
+    this.revealed = 0,
+    this.gallery = const {},
+  });
+
+  MosaicRecord copyWith({
+    String? weekKey,
+    int? revealed,
+    Map<String, int>? gallery,
+  }) =>
+      MosaicRecord(
+        weekKey: weekKey ?? this.weekKey,
+        revealed: revealed ?? this.revealed,
+        gallery: gallery ?? this.gallery,
+      );
+
+  Map<String, dynamic> toMap() => {
+        'weekKey': weekKey,
+        'revealed': revealed,
+        'gallery': gallery,
+      };
+
+  factory MosaicRecord.fromMap(Map<String, dynamic> m) => MosaicRecord(
+        weekKey: m['weekKey'] as String?,
+        revealed: m['revealed'] as int? ?? 0,
+        gallery: ((m['gallery'] as Map?) ?? const {})
+            .map((k, v) => MapEntry(k as String, v as int? ?? 0)),
+      );
+}
+
 /// Cumulative, cross-mode counters: the data behind the badge shelf, plus
 /// small daily-keyed quotas (Premium free hints).
 class StatsRecord {

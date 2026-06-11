@@ -6,7 +6,10 @@
 ///    adjacent group clears (scan strategy becomes "clear edges to reveal").
 ///  * [gold]: pays bonus coins when the board is cleared — a visible
 ///    "this board pays extra" marker.
-enum TileModifier { none, veiled, gold }
+///  * [locked]: untraceable until any orthogonally adjacent group clears —
+///    a sequencing puzzle layered on top of the sums. Placement is validated
+///    at generation time so a freeing order always exists.
+enum TileModifier { none, veiled, gold, locked }
 
 /// An immutable number tile occupying a single grid cell.
 ///
@@ -25,10 +28,14 @@ class Tile {
     this.modifier = TileModifier.none,
   });
 
-  /// This tile with its veil lifted (no-op for other modifiers).
-  Tile unveiled() => modifier == TileModifier.veiled
-      ? Tile(id: id, value: value)
-      : this;
+  /// This tile with its veil lifted or lock opened (no-op otherwise).
+  Tile released() =>
+      modifier == TileModifier.veiled || modifier == TileModifier.locked
+          ? Tile(id: id, value: value)
+          : this;
+
+  /// Backwards-friendly alias for the veil case.
+  Tile unveiled() => released();
 
   @override
   bool operator ==(Object other) =>

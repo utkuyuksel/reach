@@ -121,8 +121,13 @@ class Generator {
   /// partition is carved, so values, groups, and solvability are untouched.
   /// Deterministic in `puzzle.seed`: the same board always decorates the same
   /// way. Gold and veiled cells are disjoint; counts are clamped to the board.
-  static Puzzle decorate(Puzzle puzzle, {int veiled = 0, int gold = 0}) {
-    if (veiled <= 0 && gold <= 0) return puzzle;
+  static Puzzle decorate(
+    Puzzle puzzle, {
+    int veiled = 0,
+    int gold = 0,
+    int locked = 0,
+  }) {
+    if (veiled <= 0 && gold <= 0 && locked <= 0) return puzzle;
     final grid = puzzle.initialGrid;
     final rng = DeterministicRng(puzzle.seed ^ 0x5DEC0);
 
@@ -140,17 +145,46 @@ class Generator {
     final goldSet = cells.take(goldCount).toSet();
     final veilSet = cells.skip(goldCount).take(veilCount).toSet();
 
+    // Locked placement is VALIDATED so a freeing order always exists:
+    // a lock may only sit on a cell with an orthogonal neighbour in a
+    // DIFFERENT group that itself contains no lock (clearing that lock-free
+    // neighbour group opens this lock). One lock per group, never on
+    // gold/veiled cells.
+    final groupOf = <int, int>{};
+    for (var g = 0; g < puzzle.groups.length; g++) {
+      for (final i in puzzle.groups[g]) {
+        groupOf[i] = g;
+      }
+    }
+    final lockedGroups = <int>{};
+    final lockSet = <int>{};
+    if (locked > 0) {
+      for (final cell in cells) {
+        if (lockSet.length >= locked) break;
+        if (goldSet.contains(cell) || veilSet.contains(cell)) continue;
+        final g = groupOf[cell]!;
+        if (lockedGroups.contains(g)) continue;
+        final hasFreeKey = grid.neighborsOf(cell).any((n) {
+          final ng = groupOf[n];
+          return ng != null && ng != g && !lockedGroups.contains(ng);
+        });
+        if (!hasFreeKey) continue;
+        lockSet.add(cell);
+        lockedGroups.add(g);
+      }
+    }
+
     final newCells = List<Tile?>.from(grid.cells);
-    for (final i in goldSet) {
-      final t = newCells[i]!;
-      newCells[i] =
-          Tile(id: t.id, value: t.value, modifier: TileModifier.gold);
+    void apply(Set<int> set, TileModifier m) {
+      for (final i in set) {
+        final t = newCells[i]!;
+        newCells[i] = Tile(id: t.id, value: t.value, modifier: m);
+      }
     }
-    for (final i in veilSet) {
-      final t = newCells[i]!;
-      newCells[i] =
-          Tile(id: t.id, value: t.value, modifier: TileModifier.veiled);
-    }
+
+    apply(goldSet, TileModifier.gold);
+    apply(veilSet, TileModifier.veiled);
+    apply(lockSet, TileModifier.locked);
 
     return Puzzle(
       initialGrid: Grid(rows: grid.rows, cols: grid.cols, cells: newCells),

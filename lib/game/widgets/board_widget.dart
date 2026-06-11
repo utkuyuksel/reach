@@ -143,6 +143,7 @@ class _BoardWidgetState extends State<BoardWidget>
   void _start(Offset p) {
     final cell = _cellAt(p);
     if (cell == null || _grid.at(cell) == null) return;
+    if (_grid.at(cell)!.modifier == TileModifier.locked) return;
     setState(() => _path = [cell]);
     _tick();
   }
@@ -160,8 +161,9 @@ class _BoardWidgetState extends State<BoardWidget>
       setState(() => _path = _path.sublist(0, _path.length - 1));
       return;
     }
-    // Otherwise extend if it's a fresh, occupied, adjacent tile.
+    // Otherwise extend if it's a fresh, occupied, unlocked, adjacent tile.
     if (_grid.at(cell) != null &&
+        _grid.at(cell)!.modifier != TileModifier.locked &&
         !_path.contains(cell) &&
         _grid.areOrthogonalNeighbors(_path.last, cell)) {
       setState(() => _path = [..._path, cell]);
@@ -289,6 +291,7 @@ class _BoardWidgetState extends State<BoardWidget>
               colorblind: widget.colorblind,
               veiled: tile.modifier == TileModifier.veiled,
               gold: tile.modifier == TileModifier.gold,
+              locked: tile.modifier == TileModifier.locked,
             ),
     );
   }

@@ -23,6 +23,9 @@ class TileWidget extends StatelessWidget {
   /// Pays bonus coins on the board clear (small coin glint, shape-based).
   final bool gold;
 
+  /// Untraceable until a neighbouring group clears (small lock badge).
+  final bool locked;
+
   const TileWidget({
     super.key,
     required this.value,
@@ -32,6 +35,7 @@ class TileWidget extends StatelessWidget {
     this.colorblind = false,
     this.veiled = false,
     this.gold = false,
+    this.locked = false,
   });
 
   @override
@@ -80,6 +84,17 @@ class TileWidget extends StatelessWidget {
                     ),
                   ),
           ),
+          // Lock badge: untraceable until a neighbouring clear frees it.
+          if (locked)
+            Positioned(
+              top: 5,
+              right: 6,
+              child: Icon(
+                Icons.lock_rounded,
+                size: 12,
+                color: palette.inkSoft,
+              ),
+            ),
           // Gold glint: a small coin dot, top-left (shape, not colour alone).
           if (gold)
             Positioned(

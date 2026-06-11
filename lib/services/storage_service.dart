@@ -26,6 +26,9 @@ abstract class StorageService {
   StatsRecord loadStats();
   Future<void> saveStats(StatsRecord record);
 
+  MosaicRecord loadMosaic();
+  Future<void> saveMosaic(MosaicRecord record);
+
   /// The coin wallet, or null if it has never been initialised (first launch —
   /// the caller grants starting coins).
   WalletRecord? loadWallet();

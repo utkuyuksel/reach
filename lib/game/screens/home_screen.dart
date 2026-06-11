@@ -4,22 +4,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/app_constants.dart';
+import '../../engine/generator.dart';
 import '../../util/date_key.dart';
 import '../state/daily_controller.dart';
 import '../state/entitlement_controller.dart';
 import '../state/game_controller.dart';
+import '../state/mosaic_controller.dart';
 import '../state/providers.dart';
 import '../state/wallet_controller.dart';
 import '../state/zen_controller.dart';
 import '../theme/app_text.dart';
 import '../theme/palette.dart';
 import '../widgets/coin_chip.dart';
+import '../widgets/mosaic_view.dart';
 import '../widgets/paper_background.dart';
 import '../widgets/pressable.dart';
 import '../widgets/soft_button.dart';
 import 'badge_shelf_screen.dart';
 import 'daily_calendar_screen.dart';
 import 'game_screen.dart';
+import 'mosaic_gallery_screen.dart';
 import 'settings_screen.dart';
 import 'shop_screen.dart';
 
@@ -164,11 +168,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               filled: false,
                             )
                           : null),
-                  subtitle: todayDone
-                      ? _NextDailyCountdown(palette: palette)
-                      : (streak > 0
-                          ? _StreakRow(palette: palette, streak: streak)
-                          : null),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _WeekDots(palette: palette, daily: daily),
+                      const SizedBox(height: 6),
+                      if (todayDone)
+                        _NextDailyCountdown(palette: palette)
+                      else if (streak > 0)
+                        _StreakRow(palette: palette, streak: streak),
+                    ],
+                  ),
                   onTap: () {
                     if (todayDone) {
                       Navigator.of(context).push(
@@ -207,6 +218,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     _openGame();
                   },
                 ),
+                const SizedBox(height: 16),
+                _MosaicCard(palette: palette),
                 if (!premium) ...[
                   const SizedBox(height: 16),
                   _ShopRow(palette: palette, onTap: _openShop),
@@ -271,6 +284,122 @@ class _NextDailyCountdownState extends State<_NextDailyCountdown> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The last seven days as quiet dots: filled = completed, ring = today,
+/// faint = missed. The week's story at a glance, no words.
+class _WeekDots extends StatelessWidget {
+  final GamePalette palette;
+  final dynamic daily; // DailyRecord
+
+  const _WeekDots({required this.palette, required this.daily});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 6; i >= 0; i--)
+          Padding(
+            padding: const EdgeInsets.only(right: 5),
+            child: Builder(builder: (context) {
+              final date = now.subtract(Duration(days: i));
+              final done =
+                  daily.isCompleted(dateKeyFor(date)) as bool;
+              final isToday = i == 0;
+              return Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: done ? palette.accent : Colors.transparent,
+                  border: done
+                      ? null
+                      : Border.all(
+                          color: isToday
+                              ? palette.accent
+                              : palette.line,
+                          width: isToday ? 1.5 : 1,
+                        ),
+                ),
+              );
+            }),
+          ),
+      ],
+    );
+  }
+}
+
+/// The weekly mosaic event card: the slowly-appearing artwork IS the
+/// progress display. Tap → the gallery.
+class _MosaicCard extends ConsumerWidget {
+  final GamePalette palette;
+  const _MosaicCard({required this.palette});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ctrl = ref.read(mosaicControllerProvider.notifier);
+    ref.watch(mosaicControllerProvider);
+    final config = ref.read(gameConfigProvider);
+    final revealed = ctrl.revealed;
+    final weekKey = ctrl.currentWeekKey;
+
+    return Pressable(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const MosaicGalleryScreen()),
+      ),
+      depth: 1.5,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        decoration: BoxDecoration(
+          color: palette.tile,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: palette.tileEdge),
+        ),
+        child: Row(
+          children: [
+            MosaicView(
+              seed: Generator.dailySeed(dateFromKey(weekKey)),
+              revealed: revealed,
+              size: 52,
+              palette: palette,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '$revealed / ${config.mosaicSize}',
+                    style: AppText.mono(
+                      size: 12.5,
+                      weight: FontWeight.w500,
+                      color: palette.ink,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Icon(
+                    revealed >= config.mosaicSize
+                        ? Icons.check_circle_rounded
+                        : Icons.auto_awesome_mosaic_rounded,
+                    size: 14,
+                    color: revealed >= config.mosaicSize
+                        ? palette.good
+                        : palette.inkSoft,
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: palette.inkSoft),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -438,7 +567,7 @@ class _LevelProgress extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          '$cleared cleared',
+          'CH ${cleared ~/ 10 + 1} · ${cleared % 10}/10',
           style: AppText.mono(
             size: 11,
             color: palette.inkSoft,

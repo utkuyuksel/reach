@@ -30,7 +30,7 @@ const String kAppTagline = 'a calm number puzzle';
 
 /// Marketing version shown in Settings. Keep in step with `pubspec.yaml`'s
 /// `version:` and the matching git tag (e.g. `v1.1`).
-const String kAppVersion = '1.9';
+const String kAppVersion = '1.10';
 
 /// Reverse-DNS bundle / package identifier used by the stores. This is the
 /// REAL, PERMANENT id (org segment = the developer handle, so it survives any

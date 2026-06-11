@@ -10,6 +10,7 @@ import '../../services/analytics_service.dart';
 import '../../util/date_key.dart';
 import 'daily_controller.dart';
 import 'game_session.dart';
+import 'mosaic_controller.dart';
 import 'providers.dart';
 import 'stats_controller.dart';
 import 'wallet_controller.dart';
@@ -105,6 +106,7 @@ class GameController extends Notifier<GameSession?> {
       puzzle,
       gold: _goldFor(cleared, isFinale, puzzle.seed),
       veiled: _veiledFor(cleared, puzzle.seed),
+      locked: _lockedFor(cleared),
     );
     startWithPuzzle(puzzle, GameMode.zen, isFinale: isFinale);
   }
@@ -125,6 +127,14 @@ class GameController extends Notifier<GameSession?> {
     if (chapter < 3) return 0;
     final base = 2 + ((chapter - 3) ~/ 2);
     return (base + seed % 2).clamp(2, 6);
+  }
+
+  /// Locked tiles from chapter 4 (one), two from chapter 6 — the sequencing
+  /// layer arrives last, after gold and veil are familiar.
+  int _lockedFor(int cleared) {
+    final chapter = cleared ~/ Difficulty.clearsPerLevel + 1;
+    if (chapter < 4) return 0;
+    return chapter >= 6 ? 2 : 1;
   }
 
   void nextZen() => startZen();
@@ -286,6 +296,7 @@ class GameController extends Notifier<GameSession?> {
     // Date-keyed modes pay only for a FRESH record — replaying a completed
     // day (restart-after-win, archive re-entry) must never re-mint coins.
     var earned = 0;
+    var freshWin = true; // false when a date-keyed board was already complete
     switch (session.mode) {
       case GameMode.daily:
         final fresh = !ref
@@ -296,6 +307,7 @@ class GameController extends Notifier<GameSession?> {
               hintsUsed: session.hintsUsed,
               stars: stars,
             );
+        freshWin = fresh;
         if (fresh) {
           earned = config.coinsPerClear + config.dailyClearBonus;
           analytics.log(AnalyticsEvents.dailyCompleted, {
@@ -316,6 +328,7 @@ class GameController extends Notifier<GameSession?> {
               hintsUsed: session.hintsUsed,
               stars: stars,
             );
+        freshWin = fresh;
         if (fresh) {
           earned = config.archiveClearCoins;
           analytics.log(AnalyticsEvents.archivePlayed, {'stars': stars});
@@ -333,6 +346,7 @@ class GameController extends Notifier<GameSession?> {
               hintsUsed: session.hintsUsed,
               stars: stars,
             );
+        freshWin = fresh;
         if (fresh) {
           earned = hard ? config.ladderHardCoins : config.ladderEasyCoins;
           ref
@@ -376,6 +390,12 @@ class GameController extends Notifier<GameSession?> {
         if (session.wrongTraces >= 3 || _sawStuck) _mercyBoards = 2;
 
         ref.read(statsControllerProvider.notifier).recordWin(clean: cleanBadge);
+    }
+
+    // Every fresh clear, in any mode, reveals a few cells of this week's
+    // mosaic — the cross-mode habit-stacking hook.
+    if (freshWin) {
+      ref.read(mosaicControllerProvider.notifier).onBoardCleared();
     }
 
     wallet.earn(earned, reason: 'clear');
