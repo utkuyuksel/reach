@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../engine/difficulty.dart';
 import '../../engine/solver.dart';
 import '../../services/analytics_service.dart';
 import '../../services/sound_service.dart';
@@ -11,6 +12,7 @@ import '../state/game_controller.dart';
 import '../state/game_session.dart';
 import '../state/providers.dart';
 import '../state/settings_controller.dart';
+import '../state/stats_controller.dart';
 import '../state/wallet_controller.dart';
 import '../state/zen_controller.dart';
 import '../theme/app_text.dart';
@@ -18,10 +20,10 @@ import '../theme/palette.dart';
 import '../widgets/board_widget.dart';
 import '../widgets/coin_chip.dart';
 import '../widgets/control_bar.dart';
-import '../widgets/tutorial_overlay.dart';
 import '../widgets/paper_background.dart';
 import '../widgets/soft_button.dart';
 import '../widgets/target_display.dart';
+import '../widgets/tutorial_overlay.dart';
 import '../widgets/win_sheet.dart';
 import 'share_result_screen.dart';
 import 'shop_screen.dart';
@@ -37,6 +39,9 @@ class GameScreen extends ConsumerStatefulWidget {
 class _GameScreenState extends ConsumerState<GameScreen> {
   bool _adBusy = false;
   late final SoundService _sound;
+
+  /// Seed of the board whose win reward was already doubled (one 2× per win).
+  int? _doubledSeed;
 
   @override
   void initState() {
@@ -83,9 +88,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     return accepted;
   }
 
-  /// Hint flow, kept one-tap-simple: Premium → free; otherwise spend coins
-  /// silently; if short on coins, a rewarded ad tops up coins and the hint
-  /// then appears — so the player never manages coins to get help.
+  /// Hint flow, kept one-tap-simple. Premium: a daily allowance of free hints,
+  /// then coins. Free players: coins if affordable, otherwise one rewarded ad
+  /// grants the hint DIRECTLY (no coin detour) — so the player never manages
+  /// coins to get help.
   Future<void> _onHint() async {
     if (_adBusy) return;
     final session = ref.read(gameControllerProvider);
@@ -100,21 +106,24 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       return;
     }
 
-    if (ref.read(entitlementControllerProvider)) {
-      ref.read(gameControllerProvider.notifier).revealHint();
-      return;
-    }
-
     final config = ref.read(gameConfigProvider);
-    final wallet = ref.read(walletControllerProvider.notifier);
 
-    if (wallet.canAfford(config.hintCost)) {
-      wallet.trySpend(config.hintCost, reason: 'hint');
+    if (ref.read(entitlementControllerProvider)) {
+      final stats = ref.read(statsControllerProvider.notifier);
+      if (stats.useFreeHint(config.premiumDailyFreeHints)) {
+        ref.read(gameControllerProvider.notifier).revealHint();
+        return;
+      }
+      // Premium allowance exhausted today → fall through to coins.
+    }
+
+    final wallet = ref.read(walletControllerProvider.notifier);
+    if (wallet.trySpend(config.hintCost, reason: 'hint')) {
       ref.read(gameControllerProvider.notifier).revealHint();
       return;
     }
 
-    // Not enough coins → top up with a rewarded ad, then reveal.
+    // Not enough coins → one rewarded ad grants the hint directly.
     analytics.log(AnalyticsEvents.hintNoCoins);
     setState(() => _adBusy = true);
     final earned = await ref.read(adServiceProvider).showRewardedAd();
@@ -122,21 +131,21 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     setState(() => _adBusy = false);
     analytics.log(AnalyticsEvents.rewardedAdShown, {'earned': earned});
     if (!earned) return;
-    wallet.earn(config.coinsPerRewardedAd, reason: 'hint_ad');
-    if (wallet.trySpend(config.hintCost, reason: 'hint')) {
-      ref.read(gameControllerProvider.notifier).revealHint();
-    }
+    ref.read(gameControllerProvider.notifier).revealHint();
   }
 
   Future<void> _onNext(GameSession session) async {
-    if (session.mode == GameMode.daily) {
+    if (session.mode != GameMode.zen) {
       _goHome();
       return;
     }
     final premium = ref.read(entitlementControllerProvider);
     final cleared = ref.read(zenControllerProvider).boardsCleared;
-    final everyN = ref.read(gameConfigProvider).interstitialEveryNClears;
-    if (!premium && cleared > 0 && cleared % everyN == 0) {
+    final config = ref.read(gameConfigProvider);
+    // Habit before monetization: no interstitial until the player is invested.
+    if (!premium &&
+        cleared >= config.firstInterstitialMinClears &&
+        cleared % config.interstitialEveryNClears == 0) {
       await ref.read(adServiceProvider).showInterstitial();
       ref.read(analyticsServiceProvider).log(AnalyticsEvents.interstitialShown);
       if (!mounted) return;
@@ -157,6 +166,25 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         ),
       ),
     );
+  }
+
+  /// One rewarded ad doubles this win's coins (free players only).
+  Future<void> _onDoubleCoins(GameSession session) async {
+    if (_adBusy || _doubledSeed == session.puzzle.seed) return;
+    setState(() => _adBusy = true);
+    final earned = await ref.read(adServiceProvider).showRewardedAd();
+    if (!mounted) return;
+    setState(() => _adBusy = false);
+    if (!earned) return;
+    setState(() => _doubledSeed = session.puzzle.seed);
+    final config = ref.read(gameConfigProvider);
+    final bonus = session.coinsEarned * (config.winDoubleMultiplier - 1);
+    ref
+        .read(walletControllerProvider.notifier)
+        .earn(bonus, reason: 'win_double');
+    ref.read(analyticsServiceProvider).log(AnalyticsEvents.winCoinsDoubled, {
+      'bonus': bonus,
+    });
   }
 
   void _goHome() => Navigator.of(context).maybePop();
@@ -285,11 +313,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     stars: ref.read(gameConfigProvider)
                         .starsForWrong(session.wrongTraces),
                     clean: session.hintsUsed == 0,
-                    coinsEarned: _coinsEarnedFor(session),
+                    coinsEarned: session.coinsEarned,
+                    chapterComplete: _chapterJustCompleted(session),
                     detail: _winDetail(session, palette),
-                    primaryIcon: session.mode == GameMode.daily
-                        ? Icons.ios_share_rounded
-                        : Icons.arrow_forward_rounded,
+                    onDouble: !premium && _doubledSeed != session.puzzle.seed
+                        ? () => _onDoubleCoins(session)
+                        : null,
+                    primaryIcon: switch (session.mode) {
+                      GameMode.daily => Icons.ios_share_rounded,
+                      GameMode.zen => Icons.arrow_forward_rounded,
+                      GameMode.archive => Icons.calendar_month_rounded,
+                    },
                     onPrimary: () {
                       if (session.mode == GameMode.daily) {
                         _onShareDaily(session);
@@ -307,28 +341,51 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
-  int _coinsEarnedFor(GameSession session) {
-    final c = ref.read(gameConfigProvider);
-    return c.coinsPerClear +
-        (session.mode == GameMode.daily ? c.dailyClearBonus : 0);
-  }
+  bool _chapterJustCompleted(GameSession session) =>
+      session.mode == GameMode.zen &&
+      session.isWon &&
+      ref.read(zenControllerProvider).boardsCleared %
+              Difficulty.clearsPerLevel ==
+          0;
 
   Widget? _winDetail(GameSession session, GamePalette palette) {
-    if (session.mode == GameMode.daily) {
-      final streak = ref.read(dailyControllerProvider).currentStreak;
-      if (streak <= 0) return null;
-      return _DetailPill(
-        icon: Icons.local_fire_department_rounded,
-        text: '$streak',
-        palette: palette,
-      );
+    switch (session.mode) {
+      case GameMode.daily:
+        final streak = ref.read(dailyControllerProvider).currentStreak;
+        if (streak <= 0) return null;
+        return _DetailPill(
+          icon: Icons.local_fire_department_rounded,
+          text: '$streak',
+          palette: palette,
+        );
+      case GameMode.archive:
+        return _DetailPill(
+          icon: Icons.calendar_month_rounded,
+          text: session.dateKey ?? '',
+          palette: palette,
+        );
+      case GameMode.zen:
+        final zen = ref.read(zenControllerProvider);
+        final chapter = ref.read(zenControllerProvider.notifier).level;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _DetailPill(
+              icon: Icons.bolt_rounded,
+              text: 'CH $chapter',
+              palette: palette,
+            ),
+            if (zen.chain >= 2) ...[
+              const SizedBox(width: 14),
+              _DetailPill(
+                icon: Icons.spa_rounded,
+                text: '${zen.chain}',
+                palette: palette,
+              ),
+            ],
+          ],
+        );
     }
-    final level = ref.read(zenControllerProvider.notifier).level;
-    return _DetailPill(
-      icon: Icons.bolt_rounded,
-      text: 'LV $level',
-      palette: palette,
-    );
   }
 }
 
@@ -347,7 +404,15 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDaily = session.mode == GameMode.daily;
+    final (IconData modeIcon, String modeLabel) = switch (session.mode) {
+      GameMode.daily => (Icons.calendar_today_outlined, session.dateKey ?? ''),
+      GameMode.archive =>
+        (Icons.history_rounded, session.dateKey ?? ''),
+      GameMode.zen => (
+          session.isFinale ? Icons.diamond_rounded : Icons.all_inclusive,
+          'ZEN'
+        ),
+    };
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
       child: Row(
@@ -379,13 +444,15 @@ class _TopBar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  isDaily ? Icons.calendar_today_outlined : Icons.all_inclusive,
+                  modeIcon,
                   size: 15,
-                  color: palette.inkSoft,
+                  color: session.isFinale && session.mode == GameMode.zen
+                      ? palette.accent
+                      : palette.inkSoft,
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  isDaily ? (session.dateKey ?? '') : 'ZEN',
+                  modeLabel,
                   style: AppText.mono(
                     size: 11.5,
                     weight: FontWeight.w500,

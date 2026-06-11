@@ -6,16 +6,67 @@
 /// Keeping the economy + difficulty knobs here (not hard-coded) is what lets us
 /// tune generosity/cadence live once analytics show real player behaviour.
 class GameConfig {
-  // --- Coin economy ---
+  // --- Coin economy: faucets ---
   final int startingCoins;
-  final int hintCost;
   final int coinsPerClear;
+
+  /// Rewarded-ad payout for the shop's "watch a video" row. Deliberately BELOW
+  /// [hintCost] so an ad never strictly dominates the coin economy (the hint
+  /// funnel grants the hint directly instead of routing through coins).
   final int coinsPerRewardedAd;
   final int dailyClearBonus;
+
+  /// Once-per-day rewarded-ad gift on the home screen.
+  final int dailyGiftAdCoins;
+
+  /// Bonus paid when a Zen chapter (10 boards) completes.
+  final int chapterBonus;
+
+  /// Flow-chain milestone bonuses: chain length -> coins (paid once per run).
+  final int chainMilestone1; // at chain 3
+  final int chainMilestone2; // at chain 7
+  final int chainMilestone3; // at chain 15
+
+  // --- Coin economy: sinks ---
+  final int hintCost;
+
+  /// Streak Freeze token price (banked in advance; auto-consumed on a missed
+  /// day). Max [maxFreezeTokens] held at once.
+  final int streakFreezeCost;
+  final int maxFreezeTokens;
+
+  /// Streak Repair price (restore a streak broken within
+  /// [streakRepairWindowHours]; offered at most once per calendar month).
+  final int streakRepairCost;
+  final int streakRepairWindowHours;
+
+  /// Coin price to back-fill a missed calendar day from the archive (counts
+  /// toward the monthly medal, never toward the streak).
+  final int backfillCost;
 
   // --- Ads ---
   /// Show an interstitial every N Zen board clears (never in Daily/Premium).
   final int interstitialEveryNClears;
+
+  /// No interstitial before this many lifetime Zen clears (habit before
+  /// monetization — the "Vita Mahjong rule").
+  final int firstInterstitialMinClears;
+
+  /// Post-win rewarded "double coins" multiplier.
+  final int winDoubleMultiplier;
+
+  // --- Premium ---
+  /// Free hints per local day for Premium players (replaces "unlimited", so
+  /// the hint stays a meaningful object and the clean badge an achievement).
+  final int premiumDailyFreeHints;
+
+  // --- Archive ---
+  /// Coins for completing an archive/backfill board (vs the live Daily's
+  /// clear + bonus). Archive plays never touch the streak.
+  final int archiveClearCoins;
+
+  /// Free (non-Premium) players can open archive boards this many days back.
+  final int freeArchiveDays;
 
   // --- Stars (efficiency; hints do NOT reduce stars — see "clean" badge) ---
   /// Wrong/bounced traces allowed for 2 stars (0 wrong ⇒ 3 stars; more ⇒ 1).
@@ -23,11 +74,26 @@ class GameConfig {
 
   const GameConfig({
     this.startingCoins = 60,
-    this.hintCost = 20,
     this.coinsPerClear = 12,
-    this.coinsPerRewardedAd = 25,
+    this.coinsPerRewardedAd = 15,
     this.dailyClearBonus = 30,
+    this.dailyGiftAdCoins = 40,
+    this.chapterBonus = 40,
+    this.chainMilestone1 = 10,
+    this.chainMilestone2 = 20,
+    this.chainMilestone3 = 40,
+    this.hintCost = 20,
+    this.streakFreezeCost = 150,
+    this.maxFreezeTokens = 2,
+    this.streakRepairCost = 60,
+    this.streakRepairWindowHours = 48,
+    this.backfillCost = 40,
     this.interstitialEveryNClears = 7,
+    this.firstInterstitialMinClears = 12,
+    this.winDoubleMultiplier = 2,
+    this.premiumDailyFreeHints = 5,
+    this.archiveClearCoins = 21,
+    this.freeArchiveDays = 7,
     this.starTwoStarMaxWrong = 2,
   });
 

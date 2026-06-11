@@ -15,6 +15,13 @@ class WinSheet extends StatelessWidget {
   /// A short, language-light detail (e.g. streak or level). Optional.
   final Widget? detail;
 
+  /// Zen chapter finished with this clear — show the quiet chest beat.
+  final bool chapterComplete;
+
+  /// One opt-in rewarded ad doubles this win's coins. Null hides the chip
+  /// (Premium, or already doubled).
+  final VoidCallback? onDouble;
+
   final IconData primaryIcon;
   final VoidCallback onPrimary;
   final VoidCallback onHome;
@@ -29,6 +36,8 @@ class WinSheet extends StatelessWidget {
     required this.onPrimary,
     required this.onHome,
     this.detail,
+    this.chapterComplete = false,
+    this.onDouble,
   });
 
   @override
@@ -92,9 +101,17 @@ class WinSheet extends StatelessWidget {
                 ],
               ],
             ),
+            if (chapterComplete) ...[
+              const SizedBox(height: 14),
+              _ChapterChest(palette: palette),
+            ],
             if (detail != null) ...[
               const SizedBox(height: 14),
               detail!,
+            ],
+            if (onDouble != null) ...[
+              const SizedBox(height: 18),
+              _DoubleChip(palette: palette, onTap: onDouble!),
             ],
             const SizedBox(height: 28),
             Row(
@@ -117,6 +134,59 @@ class WinSheet extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The quiet chapter-complete beat: a small chest icon scaling in.
+class _ChapterChest extends StatelessWidget {
+  final GamePalette palette;
+  const _ChapterChest({required this.palette});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 460),
+      curve: Curves.easeOutBack,
+      builder: (context, t, child) => Opacity(
+        opacity: t.clamp(0.0, 1.0),
+        child: Transform.scale(scale: t, child: child),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: palette.accent.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.workspace_premium_rounded,
+                size: 18, color: palette.accent),
+            const SizedBox(width: 7),
+            Icon(Icons.check_rounded, size: 15, color: palette.accent),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Opt-in "watch an ad → double the coins" chip. Quiet, secondary, never
+/// auto-prompted.
+class _DoubleChip extends StatelessWidget {
+  final GamePalette palette;
+  final VoidCallback onTap;
+  const _DoubleChip({required this.palette, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return SoftButton(
+      icon: Icons.play_circle_outline_rounded,
+      label: '×2',
+      palette: palette,
+      onTap: onTap,
     );
   }
 }

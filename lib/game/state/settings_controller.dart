@@ -23,17 +23,23 @@ class SettingsController extends Notifier<Settings> {
 
   bool ownsPalette(String id) => state.ownedPaletteIds.contains(id);
 
-  /// Whether [palette] is usable: free, Premium-unlocked, or coin-purchased.
-  bool isUnlocked(GamePalette palette, {required bool premium}) =>
-      palette.isFree || premium || ownsPalette(palette.id);
+  /// Whether [palette] is usable. Exclusive palettes (Starter Pack) are owned
+  /// or nothing — coins and Premium can't reach them. Everything else: free,
+  /// Premium-unlocked, or coin-purchased.
+  bool isUnlocked(GamePalette palette, {required bool premium}) {
+    if (palette.exclusive) return ownsPalette(palette.id);
+    return palette.isFree || premium || ownsPalette(palette.id);
+  }
 
   /// Buy [palette] with coins and select it. Returns true on success (false if
-  /// not enough coins). Free/owned palettes are simply selected.
+  /// not enough coins, or the palette isn't coin-purchasable). Free/owned
+  /// palettes are simply selected.
   bool buyPalette(GamePalette palette) {
     if (palette.isFree || ownsPalette(palette.id)) {
       setPalette(palette.id);
       return true;
     }
+    if (palette.exclusive) return false; // granted, never sold
     final wallet = ref.read(walletControllerProvider.notifier);
     if (!wallet.trySpend(palette.coinPrice, reason: 'palette:${palette.id}')) {
       return false;
@@ -43,6 +49,14 @@ class SettingsController extends Notifier<Settings> {
       paletteId: palette.id,
     ));
     return true;
+  }
+
+  /// Grant ownership of [paletteId] without payment (Starter Pack delivery).
+  void grantPalette(String paletteId) {
+    if (ownsPalette(paletteId)) return;
+    _update(state.copyWith(
+      ownedPaletteIds: [...state.ownedPaletteIds, paletteId],
+    ));
   }
 
   void _update(Settings next) {

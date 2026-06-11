@@ -16,6 +16,7 @@ import 'package:reach/services/prefs_storage_service.dart';
 import 'package:reach/services/purchase_service.dart';
 import 'package:reach/services/remote_config_service.dart';
 import 'package:reach/services/sound_service.dart';
+import 'package:reach/util/date_key.dart';
 
 /// 2×2, target 4. Partition: [0,1] = 1+3, [2,3] = 3+1.
 Puzzle _puzzle() {
@@ -96,18 +97,94 @@ void main() {
   test('Daily completion is idempotent and updates the streak', () async {
     final c = await _container();
     final ctrl = c.read(gameControllerProvider.notifier);
-    ctrl.startWithPuzzle(_puzzle(), GameMode.daily, dateKey: '2026-06-08');
+    // The clock-integrity guard only credits TODAY's board.
+    final today = dateKeyFor(DateTime.now());
+    ctrl.startWithPuzzle(_puzzle(), GameMode.daily, dateKey: today);
 
     ctrl.submitPath([0, 1]);
     ctrl.submitPath([2, 3]);
     expect(c.read(dailyControllerProvider).currentStreak, 1);
-    expect(c.read(dailyControllerProvider).isCompleted('2026-06-08'), isTrue);
+    expect(c.read(dailyControllerProvider).isCompleted(today), isTrue);
 
     // Replaying the same day must not bump the streak again.
     ctrl.restart();
     ctrl.submitPath([0, 1]);
     ctrl.submitPath([2, 3]);
     expect(c.read(dailyControllerProvider).currentStreak, 1);
+  });
+
+  test('archive completion fills the calendar but never the streak', () async {
+    final c = await _container();
+    final config = c.read(gameConfigProvider);
+    final start = c.read(walletControllerProvider);
+    final ctrl = c.read(gameControllerProvider.notifier);
+    ctrl.startWithPuzzle(_puzzle(), GameMode.archive, dateKey: '2026-06-01');
+
+    ctrl.submitPath([0, 1]);
+    ctrl.submitPath([2, 3]);
+    final daily = c.read(dailyControllerProvider);
+    expect(daily.isCompleted('2026-06-01'), isTrue);
+    expect(daily.resultFor('2026-06-01')!.backfilled, isTrue);
+    expect(daily.currentStreak, 0);
+    expect(c.read(walletControllerProvider), start + config.archiveClearCoins);
+  });
+
+  test('zen finale pays double and the chapter chest lands on board 10',
+      () async {
+    final c = await _container();
+    final config = c.read(gameConfigProvider);
+    final ctrl = c.read(gameControllerProvider.notifier);
+    final zen = c.read(zenControllerProvider.notifier);
+
+    // Play 9 boards to reach the chapter finale position.
+    for (var i = 0; i < 9; i++) {
+      ctrl.startWithPuzzle(_puzzle(), GameMode.zen);
+      ctrl.submitPath([0, 1]);
+      ctrl.submitPath([2, 3]);
+    }
+    expect(c.read(zenControllerProvider).boardsCleared, 9);
+
+    final before = c.read(walletControllerProvider);
+    ctrl.startWithPuzzle(_puzzle(), GameMode.zen, isFinale: true);
+    ctrl.submitPath([0, 1]);
+    ctrl.submitPath([2, 3]);
+    // Finale double + chapter chest (and the clean-chain milestone if hit).
+    final earned = c.read(gameControllerProvider)!.coinsEarned;
+    expect(earned >= config.coinsPerClear * 2 + config.chapterBonus, isTrue);
+    expect(c.read(walletControllerProvider), before + earned);
+    expect(zen.level, 2); // chapter rolled over
+  });
+
+  test('flow chain grows on clean clears and resets on a wrong trace',
+      () async {
+    final c = await _container();
+    final ctrl = c.read(gameControllerProvider.notifier);
+
+    ctrl.startWithPuzzle(_puzzle(), GameMode.zen);
+    ctrl.submitPath([0, 1]);
+    ctrl.submitPath([2, 3]);
+    expect(c.read(zenControllerProvider).chain, 1);
+
+    // A wrong trace breaks the next board's cleanliness → chain resets.
+    ctrl.startWithPuzzle(_puzzle(), GameMode.zen);
+    ctrl.submitPath([0, 1, 2]); // wrong sum
+    ctrl.submitPath([0, 1]);
+    ctrl.submitPath([2, 3]);
+    expect(c.read(zenControllerProvider).chain, 0);
+    expect(c.read(zenControllerProvider).bestChain, 1);
+  });
+
+  test('session coinsEarned is set on win for the win sheet', () async {
+    final c = await _container();
+    final config = c.read(gameConfigProvider);
+    final ctrl = c.read(gameControllerProvider.notifier);
+    ctrl.startWithPuzzle(_puzzle(), GameMode.zen);
+    ctrl.submitPath([0, 1]);
+    ctrl.submitPath([2, 3]);
+    expect(
+      c.read(gameControllerProvider)!.coinsEarned >= config.coinsPerClear,
+      isTrue,
+    );
   });
 
   test('revealHint marks a hint and increments hintsUsed', () async {

@@ -25,3 +25,23 @@ bool isDayBefore(DateTime a, DateTime b) {
   final next = DateTime(a.year, a.month, a.day).add(const Duration(days: 1));
   return next.year == b.year && next.month == b.month && next.day == b.day;
 }
+
+/// Whole calendar days from [a] to [b] (positive when [b] is later). Uses UTC
+/// midnights so DST shifts can't produce off-by-one results.
+int daysBetween(DateTime a, DateTime b) {
+  final ua = DateTime.utc(a.year, a.month, a.day);
+  final ub = DateTime.utc(b.year, b.month, b.day);
+  return ub.difference(ua).inDays;
+}
+
+/// A stable 'YYYY-MM' key for [date]'s local month.
+String monthKeyFor(DateTime date) =>
+    '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}';
+
+/// Number of days in the month of 'YYYY-MM' [monthKey].
+int daysInMonth(String monthKey) {
+  final parts = monthKey.split('-');
+  final y = int.parse(parts[0]);
+  final m = int.parse(parts[1]);
+  return DateTime(y, m + 1, 0).day;
+}

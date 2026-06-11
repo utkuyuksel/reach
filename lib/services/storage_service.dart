@@ -23,6 +23,9 @@ abstract class StorageService {
   ZenRecord loadZen();
   Future<void> saveZen(ZenRecord record);
 
+  StatsRecord loadStats();
+  Future<void> saveStats(StatsRecord record);
+
   /// The coin wallet, or null if it has never been initialised (first launch —
   /// the caller grants starting coins).
   WalletRecord? loadWallet();

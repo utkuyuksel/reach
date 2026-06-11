@@ -1,7 +1,14 @@
 import '../../engine/models/game_state.dart';
 import '../../engine/models/puzzle.dart';
 
-enum GameMode { daily, zen }
+enum GameMode {
+  daily,
+  zen,
+
+  /// A past Daily replayed from the calendar/archive: fills the calendar
+  /// (medal credit) but never touches the streak; reduced coin reward.
+  archive,
+}
 
 /// The full state of one playable session: the puzzle, the live [GameState],
 /// the mode, the current hint highlight, and how many hints were used.
@@ -25,8 +32,16 @@ class GameSession {
   /// end, peg-solitaire style); the UI shows a gentle undo/restart prompt.
   final bool stuck;
 
-  /// 'YYYY-MM-DD' key for Daily sessions; null for Zen.
+  /// 'YYYY-MM-DD' key for Daily/archive sessions; null for Zen.
   final String? dateKey;
+
+  /// Zen chapter finale (the 10th board of a chapter): pays double and closes
+  /// the chapter. Marked with a small gem on the game screen.
+  final bool isFinale;
+
+  /// Total coins granted for this board's win (clear + bonuses), set by the
+  /// controller at win time so the UI never re-derives economy math.
+  final int coinsEarned;
 
   const GameSession({
     required this.mode,
@@ -37,6 +52,8 @@ class GameSession {
     this.wrongTraces = 0,
     this.stuck = false,
     this.dateKey,
+    this.isFinale = false,
+    this.coinsEarned = 0,
   });
 
   int get target => puzzle.target;
@@ -50,6 +67,7 @@ class GameSession {
     int? hintsUsed,
     int? wrongTraces,
     bool? stuck,
+    int? coinsEarned,
   }) =>
       GameSession(
         mode: mode,
@@ -60,5 +78,7 @@ class GameSession {
         wrongTraces: wrongTraces ?? this.wrongTraces,
         stuck: stuck ?? this.stuck,
         dateKey: dateKey,
+        isFinale: isFinale,
+        coinsEarned: coinsEarned ?? this.coinsEarned,
       );
 }

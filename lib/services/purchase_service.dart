@@ -40,7 +40,8 @@ class DevPurchaseService implements PurchaseService {
   final Set<String> _ownedNonConsumables = {};
 
   static const _devPrices = {
-    IapConfig.premiumProductId: r'$3.99',
+    IapConfig.premiumProductId: r'$7.99',
+    IapConfig.starterPackProductId: r'$1.99',
     'com.utkuyuksel.reach.coins_small': r'$0.99',
     'com.utkuyuksel.reach.coins_medium': r'$2.99',
     'com.utkuyuksel.reach.coins_large': r'$6.99',

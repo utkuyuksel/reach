@@ -67,6 +67,11 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
       if (haptics) HapticFeedback.selectionClick();
       return;
     }
+    if (p.exclusive) {
+      // Granted by the Starter Pack only — never sold for coins.
+      _toast('${p.name} comes with the Starter Pack.', palette);
+      return;
+    }
     // Locked → buy with coins.
     if (ctrl.buyPalette(p)) {
       if (haptics) HapticFeedback.lightImpact();
@@ -157,6 +162,13 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                                 '—',
                           ),
                         ),
+                      if (!ref
+                          .read(settingsControllerProvider.notifier)
+                          .ownsPalette(IapConfig.starterPackPaletteId)) ...[
+                        const SizedBox(height: 22),
+                        _SectionLabel(palette: palette, text: 'STARTER'),
+                        _StarterPackCard(palette: palette),
+                      ],
                       const SizedBox(height: 22),
                       _SectionLabel(palette: palette, text: 'PREMIUM'),
                       _PremiumCard(palette: palette),
@@ -302,6 +314,68 @@ class _PriceTag extends StatelessWidget {
       );
 }
 
+/// One-time Starter Pack: coins + the exclusive Ember theme + a Streak
+/// Freeze. Persistently visible until bought — soft presence, no countdown.
+class _StarterPackCard extends ConsumerWidget {
+  final GamePalette palette;
+  const _StarterPackCard({required this.palette});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final wallet = ref.read(walletControllerProvider.notifier);
+    final price = wallet.priceFor(IapConfig.starterPackProductId);
+    final ember = GamePalette.ember;
+    return Container(
+      decoration: BoxDecoration(
+        color: palette.tile,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: palette.accent.withValues(alpha: 0.5)),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: ember.paper,
+              shape: BoxShape.circle,
+              border: Border.all(color: ember.accent, width: 2),
+            ),
+            child: Icon(Icons.local_fire_department_rounded,
+                size: 20, color: ember.accent),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Row(
+              children: [
+                Icon(Icons.monetization_on_rounded,
+                    size: 15, color: palette.accent),
+                const SizedBox(width: 3),
+                Text('${IapConfig.starterPackCoins}',
+                    style: AppText.mono(size: 12.5, color: palette.ink)),
+                const SizedBox(width: 12),
+                Icon(Icons.palette_outlined,
+                    size: 15, color: palette.inkSoft),
+                const SizedBox(width: 12),
+                Icon(Icons.ac_unit_rounded, size: 15, color: palette.inkSoft),
+              ],
+            ),
+          ),
+          SoftButton(
+            icon: Icons.redeem_rounded,
+            label: price ?? '—',
+            palette: palette,
+            primary: true,
+            onTap: () =>
+                wallet.buyPack(IapConfig.starterPackProductId),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PremiumCard extends ConsumerWidget {
   final GamePalette palette;
   const _PremiumCard({required this.palette});
@@ -320,7 +394,7 @@ class _PremiumCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('No ads · unlimited hints · all themes',
+          Text('No ads · 5 free hints daily · all themes',
               style: AppText.mono(size: 12.5, color: palette.inkSoft)),
           const SizedBox(height: 14),
           Row(
@@ -403,6 +477,9 @@ class _ThemeTile extends StatelessWidget {
               Icon(Icons.check_circle_rounded, size: 16, color: current.accent)
             else if (unlocked)
               Icon(Icons.circle_outlined, size: 14, color: current.inkSoft)
+            else if (palette.exclusive)
+              // Starter Pack exclusive — never coin-priced.
+              Icon(Icons.redeem_rounded, size: 14, color: current.accent)
             else
               Row(
                 mainAxisSize: MainAxisSize.min,

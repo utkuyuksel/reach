@@ -87,10 +87,15 @@ class DailyResult {
   /// Efficiency rating 1–3 (independent of hints).
   final int stars;
 
+  /// Completed later via the archive (counts toward the monthly medal, shown
+  /// distinctly on the calendar, never granted streak credit).
+  final bool backfilled;
+
   const DailyResult({
     required this.dateKey,
     this.hintsUsed = 0,
     this.stars = 3,
+    this.backfilled = false,
   });
 
   /// Cleared without any hints.
@@ -100,6 +105,7 @@ class DailyResult {
         'dateKey': dateKey,
         'hintsUsed': hintsUsed,
         'stars': stars,
+        'backfilled': backfilled,
       };
 
   factory DailyResult.fromMap(Map<String, dynamic> m) => DailyResult(
@@ -107,21 +113,47 @@ class DailyResult {
         dateKey: m['dateKey'] as String? ?? '',
         hintsUsed: m['hintsUsed'] as int? ?? 0,
         stars: m['stars'] as int? ?? 3,
+        backfilled: m['backfilled'] as bool? ?? false,
       );
 }
 
-/// Daily Challenge progress.
+/// Daily Challenge progress: streak state (with freeze/repair support) and the
+/// per-day results map that backs the calendar, medals, and stats.
 class DailyRecord {
   final int currentStreak;
   final int longestStreak;
   final String? lastCompletedDate; // 'YYYY-MM-DD'
   final Map<String, DailyResult> results; // dateKey -> result
 
+  /// Banked Streak Freeze tokens (auto-consumed, one per missed day, when the
+  /// next completion detects a gap).
+  final int freezeTokens;
+
+  /// When a streak breaks, its value is parked here so a Streak Repair (within
+  /// the repair window, once per month) can restore it. 0 = nothing to repair.
+  final int brokenStreak;
+
+  /// Epoch millis of the moment the break was DETECTED (i.e. the completion
+  /// that reset the streak), bounding the repair window.
+  final int brokenAtMillis;
+
+  /// 'YYYY-MM' of the last used Streak Repair (max one per calendar month).
+  final String? lastRepairMonth;
+
+  /// Epoch millis of the last streak-credited completion: clock-rollback
+  /// guard (a new streak increment requires ≥20h since the previous one).
+  final int lastCompletedAtMillis;
+
   const DailyRecord({
     this.currentStreak = 0,
     this.longestStreak = 0,
     this.lastCompletedDate,
     this.results = const {},
+    this.freezeTokens = 0,
+    this.brokenStreak = 0,
+    this.brokenAtMillis = 0,
+    this.lastRepairMonth,
+    this.lastCompletedAtMillis = 0,
   });
 
   bool isCompleted(String dateKey) => results.containsKey(dateKey);
@@ -132,12 +164,23 @@ class DailyRecord {
     int? longestStreak,
     String? lastCompletedDate,
     Map<String, DailyResult>? results,
+    int? freezeTokens,
+    int? brokenStreak,
+    int? brokenAtMillis,
+    String? lastRepairMonth,
+    int? lastCompletedAtMillis,
   }) =>
       DailyRecord(
         currentStreak: currentStreak ?? this.currentStreak,
         longestStreak: longestStreak ?? this.longestStreak,
         lastCompletedDate: lastCompletedDate ?? this.lastCompletedDate,
         results: results ?? this.results,
+        freezeTokens: freezeTokens ?? this.freezeTokens,
+        brokenStreak: brokenStreak ?? this.brokenStreak,
+        brokenAtMillis: brokenAtMillis ?? this.brokenAtMillis,
+        lastRepairMonth: lastRepairMonth ?? this.lastRepairMonth,
+        lastCompletedAtMillis:
+            lastCompletedAtMillis ?? this.lastCompletedAtMillis,
       );
 
   Map<String, dynamic> toMap() => {
@@ -145,6 +188,11 @@ class DailyRecord {
         'longestStreak': longestStreak,
         'lastCompletedDate': lastCompletedDate,
         'results': results.map((k, v) => MapEntry(k, v.toMap())),
+        'freezeTokens': freezeTokens,
+        'brokenStreak': brokenStreak,
+        'brokenAtMillis': brokenAtMillis,
+        'lastRepairMonth': lastRepairMonth,
+        'lastCompletedAtMillis': lastCompletedAtMillis,
       };
 
   factory DailyRecord.fromMap(Map<String, dynamic> m) {
@@ -159,37 +207,132 @@ class DailyRecord {
       longestStreak: m['longestStreak'] as int? ?? 0,
       lastCompletedDate: m['lastCompletedDate'] as String?,
       results: results,
+      freezeTokens: m['freezeTokens'] as int? ?? 0,
+      brokenStreak: m['brokenStreak'] as int? ?? 0,
+      brokenAtMillis: m['brokenAtMillis'] as int? ?? 0,
+      lastRepairMonth: m['lastRepairMonth'] as String?,
+      lastCompletedAtMillis: m['lastCompletedAtMillis'] as int? ?? 0,
     );
   }
 }
 
-/// The player's coin balance (spent on hints; earned from clears/ads/IAP).
+/// The player's coin balance (spent on hints/cosmetics/streak protection;
+/// earned from clears/ads/IAP).
 class WalletRecord {
   final int coins;
 
-  const WalletRecord({this.coins = 0});
+  /// Local dateKey on which the once-daily home-screen gift ad was claimed.
+  final String? giftDateKey;
 
-  WalletRecord copyWith({int? coins}) =>
-      WalletRecord(coins: coins ?? this.coins);
+  const WalletRecord({this.coins = 0, this.giftDateKey});
 
-  Map<String, dynamic> toMap() => {'coins': coins};
+  WalletRecord copyWith({int? coins, String? giftDateKey}) => WalletRecord(
+        coins: coins ?? this.coins,
+        giftDateKey: giftDateKey ?? this.giftDateKey,
+      );
 
-  factory WalletRecord.fromMap(Map<String, dynamic> m) =>
-      WalletRecord(coins: m['coins'] as int? ?? 0);
+  Map<String, dynamic> toMap() =>
+      {'coins': coins, 'giftDateKey': giftDateKey};
+
+  factory WalletRecord.fromMap(Map<String, dynamic> m) => WalletRecord(
+        coins: m['coins'] as int? ?? 0,
+        giftDateKey: m['giftDateKey'] as String?,
+      );
 }
 
-/// Zen mode progress. The displayed level is derived from boards cleared.
+/// Zen mode progress: total clears (drives the difficulty ramp and chapter)
+/// and the flow chain (consecutive clean clears).
 class ZenRecord {
-  /// Total boards cleared in Zen (drives the difficulty ramp and the level).
+  /// Total boards cleared in Zen (drives the difficulty ramp and the chapter).
   final int boardsCleared;
 
-  const ZenRecord({this.boardsCleared = 0});
+  /// Current flow chain: consecutive Zen clears with no wrong traces and no
+  /// hints. A wrong trace gently resets it.
+  final int chain;
 
-  ZenRecord copyWith({int? boardsCleared}) =>
-      ZenRecord(boardsCleared: boardsCleared ?? this.boardsCleared);
+  /// Best flow chain ever reached.
+  final int bestChain;
 
-  Map<String, dynamic> toMap() => {'boardsCleared': boardsCleared};
+  const ZenRecord({
+    this.boardsCleared = 0,
+    this.chain = 0,
+    this.bestChain = 0,
+  });
 
-  factory ZenRecord.fromMap(Map<String, dynamic> m) =>
-      ZenRecord(boardsCleared: m['boardsCleared'] as int? ?? 0);
+  ZenRecord copyWith({int? boardsCleared, int? chain, int? bestChain}) =>
+      ZenRecord(
+        boardsCleared: boardsCleared ?? this.boardsCleared,
+        chain: chain ?? this.chain,
+        bestChain: bestChain ?? this.bestChain,
+      );
+
+  Map<String, dynamic> toMap() => {
+        'boardsCleared': boardsCleared,
+        'chain': chain,
+        'bestChain': bestChain,
+      };
+
+  factory ZenRecord.fromMap(Map<String, dynamic> m) => ZenRecord(
+        boardsCleared: m['boardsCleared'] as int? ?? 0,
+        chain: m['chain'] as int? ?? 0,
+        bestChain: m['bestChain'] as int? ?? 0,
+      );
+}
+
+/// Cumulative, cross-mode counters: the data behind the badge shelf, plus
+/// small daily-keyed quotas (Premium free hints).
+class StatsRecord {
+  /// Boards cleared across all modes (Daily + Zen + archive).
+  final int totalClears;
+
+  /// Boards cleared without using a hint.
+  final int cleanClears;
+
+  /// Daily boards finished with 3 stars.
+  final int threeStarDailies;
+
+  /// Local dateKey the Premium free-hint quota was last used on.
+  final String? hintQuotaDateKey;
+
+  /// Premium free hints used on [hintQuotaDateKey].
+  final int hintQuotaUsed;
+
+  const StatsRecord({
+    this.totalClears = 0,
+    this.cleanClears = 0,
+    this.threeStarDailies = 0,
+    this.hintQuotaDateKey,
+    this.hintQuotaUsed = 0,
+  });
+
+  StatsRecord copyWith({
+    int? totalClears,
+    int? cleanClears,
+    int? threeStarDailies,
+    String? hintQuotaDateKey,
+    int? hintQuotaUsed,
+  }) =>
+      StatsRecord(
+        totalClears: totalClears ?? this.totalClears,
+        cleanClears: cleanClears ?? this.cleanClears,
+        threeStarDailies: threeStarDailies ?? this.threeStarDailies,
+        hintQuotaDateKey: hintQuotaDateKey ?? this.hintQuotaDateKey,
+        hintQuotaUsed: hintQuotaUsed ?? this.hintQuotaUsed,
+      );
+
+  Map<String, dynamic> toMap() => {
+        'totalClears': totalClears,
+        'cleanClears': cleanClears,
+        'threeStarDailies': threeStarDailies,
+        'hintQuotaDateKey': hintQuotaDateKey,
+        'hintQuotaUsed': hintQuotaUsed,
+      };
+
+  factory StatsRecord.fromMap(Map<String, dynamic> m) => StatsRecord(
+        totalClears: m['totalClears'] as int? ?? 0,
+        cleanClears: m['cleanClears'] as int? ?? 0,
+        threeStarDailies: m['threeStarDailies'] as int? ?? 0,
+        hintQuotaDateKey: m['hintQuotaDateKey'] as String?,
+        hintQuotaUsed: m['hintQuotaUsed'] as int? ?? 0,
+      );
 }

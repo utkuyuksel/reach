@@ -156,8 +156,10 @@ class Difficulty {
     );
   }
 
-  /// Number of board clears per displayed "level" in Zen.
-  static const int clearsPerLevel = 1;
+  /// Number of board clears per displayed Zen *chapter*. The difficulty ramp
+  /// itself is keyed on raw boardsCleared (see [endlessForLevel] callers); the
+  /// chapter is the honest, slower progress unit the UI celebrates.
+  static const int clearsPerLevel = 10;
 
   @override
   String toString() =>

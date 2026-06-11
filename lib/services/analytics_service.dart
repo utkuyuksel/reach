@@ -37,6 +37,26 @@ class AnalyticsEvents {
 
   // Monetization funnel top.
   static const shopOpened = 'shop_opened';
+
+  // Streak economy.
+  static const streakFreezeUsed = 'streak_freeze_used';
+  static const streakFreezeBought = 'streak_freeze_bought';
+  static const streakRepaired = 'streak_repaired';
+
+  // Zen structure.
+  static const chapterComplete = 'chapter_complete';
+  static const chainMilestone = 'chain_milestone';
+
+  // New reward surfaces.
+  static const dailyGiftClaimed = 'daily_gift_claimed';
+  static const winCoinsDoubled = 'win_coins_doubled';
+
+  // Calendar / archive.
+  static const archivePlayed = 'archive_played';
+  static const calendarOpened = 'calendar_opened';
+
+  // Meta.
+  static const badgeEarned = 'badge_earned';
 }
 
 /// Does nothing (tests, or until a real provider is wired).

@@ -14,6 +14,7 @@ class PrefsStorageService implements StorageService {
   static const _kDaily = 'reach.daily.v1';
   static const _kZen = 'reach.zen.v1';
   static const _kWallet = 'reach.wallet.v1';
+  static const _kStats = 'reach.stats.v1';
 
   late SharedPreferences _prefs;
 
@@ -21,6 +22,7 @@ class PrefsStorageService implements StorageService {
   bool _premium = false;
   DailyRecord _daily = const DailyRecord();
   ZenRecord _zen = const ZenRecord();
+  StatsRecord _stats = const StatsRecord();
   WalletRecord? _wallet;
 
   @override
@@ -30,6 +32,7 @@ class PrefsStorageService implements StorageService {
     _premium = _prefs.getBool(_kPremium) ?? false;
     _daily = _readMap(_kDaily, DailyRecord.fromMap) ?? const DailyRecord();
     _zen = _readMap(_kZen, ZenRecord.fromMap) ?? const ZenRecord();
+    _stats = _readMap(_kStats, StatsRecord.fromMap) ?? const StatsRecord();
     _wallet = _readMap(_kWallet, WalletRecord.fromMap);
   }
 
@@ -80,6 +83,15 @@ class PrefsStorageService implements StorageService {
   }
 
   @override
+  StatsRecord loadStats() => _stats;
+
+  @override
+  Future<void> saveStats(StatsRecord record) async {
+    _stats = record;
+    await _prefs.setString(_kStats, jsonEncode(record.toMap()));
+  }
+
+  @override
   WalletRecord? loadWallet() => _wallet;
 
   @override
@@ -95,6 +107,7 @@ class InMemoryStorageService implements StorageService {
   bool _premium = false;
   DailyRecord _daily = const DailyRecord();
   ZenRecord _zen = const ZenRecord();
+  StatsRecord _stats = const StatsRecord();
   WalletRecord? _wallet;
 
   @override
@@ -119,6 +132,11 @@ class InMemoryStorageService implements StorageService {
   ZenRecord loadZen() => _zen;
   @override
   Future<void> saveZen(ZenRecord record) async => _zen = record;
+
+  @override
+  StatsRecord loadStats() => _stats;
+  @override
+  Future<void> saveStats(StatsRecord record) async => _stats = record;
 
   @override
   WalletRecord? loadWallet() => _wallet;

@@ -10,33 +10,50 @@ import '../../util/date_key.dart';
 import 'daily_controller.dart';
 import 'game_session.dart';
 import 'providers.dart';
+import 'stats_controller.dart';
 import 'wallet_controller.dart';
 import 'zen_controller.dart';
 
 /// Drives the active [GameSession]: starts boards, routes traced groups to the
 /// engine, tracks rejected attempts (for stars), and on a clear awards coins +
-/// records Daily/Zen + emits analytics. UI concerns (ads, share, hint cost,
-/// drag) live in the screen/widgets.
+/// records Daily/Zen/archive + emits analytics. UI concerns (ads, share, hint
+/// cost, drag) live in the screen/widgets.
 class GameController extends Notifier<GameSession?> {
   int _zenNonce = 0;
   bool _winRecorded = false;
 
+  /// Set when the player hits a dead end this board (mercy signal).
+  bool _sawStuck = false;
+
+  /// Invisible difficulty director: >0 ⇒ the next N Zen boards sit at the
+  /// gentle end of their decoy band (Block Blast-style mercy — no UI, no
+  /// monetization coupling).
+  int _mercyBoards = 0;
+
   @override
   GameSession? build() => null;
 
-  void startWithPuzzle(Puzzle puzzle, GameMode mode, {String? dateKey}) {
+  void startWithPuzzle(
+    Puzzle puzzle,
+    GameMode mode, {
+    String? dateKey,
+    bool isFinale = false,
+  }) {
     _winRecorded = false;
+    _sawStuck = false;
     state = GameSession(
       mode: mode,
       puzzle: puzzle,
       state: GameState.fromPuzzle(puzzle),
       dateKey: dateKey,
+      isFinale: isFinale,
     );
     ref.read(analyticsServiceProvider).log(AnalyticsEvents.boardStart, {
       'mode': mode.name,
       'difficulty': puzzle.difficulty.id,
       'target': puzzle.target,
       'groups': puzzle.groupCount,
+      'finale': isFinale,
     });
   }
 
@@ -49,15 +66,69 @@ class GameController extends Notifier<GameSession?> {
     startWithPuzzle(puzzle, GameMode.daily, dateKey: dateKeyFor(now));
   }
 
+  /// Replay a past Daily from the calendar/archive. Same board everyone saw
+  /// that day (deterministic seed); never touches the streak.
+  void startArchive(DateTime date) {
+    final puzzle = Generator.generateTuned(
+      difficulty: Difficulty.daily,
+      seed: Generator.dailySeed(date),
+    );
+    startWithPuzzle(puzzle, GameMode.archive, dateKey: dateKeyFor(date));
+  }
+
   void startZen() {
     final cleared = ref.read(zenControllerProvider).boardsCleared;
-    final difficulty = Difficulty.endlessForLevel(cleared);
+    final base = Difficulty.endlessForLevel(cleared);
+    final position = cleared % Difficulty.clearsPerLevel; // 0..9 in chapter
+    final isFinale = position == Difficulty.clearsPerLevel - 1;
+    final difficulty = _modulated(base, position, isFinale);
     final puzzle =
         Generator.generateTuned(difficulty: difficulty, seed: _freshSeed());
-    startWithPuzzle(puzzle, GameMode.zen);
+    startWithPuzzle(puzzle, GameMode.zen, isFinale: isFinale);
   }
 
   void nextZen() => startZen();
+
+  /// Sawtooth pacing within a chapter + the invisible mercy director, applied
+  /// as a shift of the decoy band passed to the generator. Difficulty rises
+  /// through the chapter, eases on the two breather boards, and peaks on the
+  /// finale — and quietly floors after struggle signals.
+  Difficulty _modulated(Difficulty base, int position, bool isFinale) {
+    final span = base.decoyMax - base.decoyMin;
+    if (span <= 2) return base;
+
+    int lo, hi;
+    if (_mercyBoards > 0) {
+      _mercyBoards--;
+      lo = base.decoyMin;
+      hi = base.decoyMin + span ~/ 3; // gentle floor
+    } else if (isFinale) {
+      lo = base.decoyMax - span ~/ 3; // chapter peak
+      hi = base.decoyMax;
+    } else if (position >= 7) {
+      lo = base.decoyMin; // breathers before the finale
+      hi = base.decoyMin + span ~/ 3;
+    } else {
+      // Rising stretch: slide a third-wide window up the band.
+      final t = position / 6.0;
+      lo = base.decoyMin + (t * (span * 2 / 3)).round();
+      hi = lo + span ~/ 3;
+    }
+    if (hi > base.decoyMax) hi = base.decoyMax;
+    if (lo > hi) lo = hi;
+
+    return Difficulty(
+      id: base.id,
+      rows: base.rows,
+      cols: base.cols,
+      minValue: base.minValue,
+      maxValue: base.maxValue,
+      groupMin: base.groupMin,
+      groupMax: base.groupMax,
+      decoyMin: lo,
+      decoyMax: hi,
+    );
+  }
 
   /// Try to clear a traced [path]. Returns true if it cleared a group. A wrong
   /// sum or a board-stranding move returns false (counted as a wrong trace, no
@@ -72,17 +143,20 @@ class GameController extends Notifier<GameSession?> {
       }
       return false;
     }
+    final stuck = !next.hasMove;
+    if (stuck && !next.isWon) _sawStuck = true;
     final updated = session.copyWith(
       state: next,
       hintCells: const [],
       // Peg-solitaire style: only flag "stuck" when NO move remains — never
       // warn the instant the board becomes unwinnable.
-      stuck: !next.hasMove,
+      stuck: stuck,
     );
     state = updated;
     if (next.isWon && !_winRecorded) {
       _winRecorded = true;
-      _onWin(updated);
+      final earned = _onWin(updated);
+      state = updated.copyWith(coinsEarned: earned);
     }
     return true;
   }
@@ -108,6 +182,7 @@ class GameController extends Notifier<GameSession?> {
       puzzle: session.puzzle,
       state: session.state.restart(),
       dateKey: session.dateKey,
+      isFinale: session.isFinale,
     );
     ref.read(analyticsServiceProvider).log(AnalyticsEvents.restart);
   }
@@ -133,29 +208,77 @@ class GameController extends Notifier<GameSession?> {
   int starsFor(GameSession session) =>
       ref.read(gameConfigProvider).starsForWrong(session.wrongTraces);
 
-  void _onWin(GameSession session) {
+  /// Awards coins, records progress, and returns the total coins earned.
+  int _onWin(GameSession session) {
     final config = ref.read(gameConfigProvider);
     final wallet = ref.read(walletControllerProvider.notifier);
+    final analytics = ref.read(analyticsServiceProvider);
     final stars = config.starsForWrong(session.wrongTraces);
+    final cleanBadge = session.hintsUsed == 0; // the "clean" badge
+    final flowClean = cleanBadge && session.wrongTraces == 0; // chain rule
 
-    var earned = config.coinsPerClear;
-    if (session.mode == GameMode.daily && session.dateKey != null) {
-      earned += config.dailyClearBonus;
-      ref.read(dailyControllerProvider.notifier).recordCompletion(
-            dateKey: session.dateKey!,
-            hintsUsed: session.hintsUsed,
-            stars: stars,
-          );
-      ref.read(analyticsServiceProvider).log(AnalyticsEvents.dailyCompleted, {
-        'stars': stars,
-        'hintsUsed': session.hintsUsed,
-      });
-    } else if (session.mode == GameMode.zen) {
-      ref.read(zenControllerProvider.notifier).recordClear();
+    var earned = 0;
+    switch (session.mode) {
+      case GameMode.daily:
+        earned = config.coinsPerClear + config.dailyClearBonus;
+        ref.read(dailyControllerProvider.notifier).recordCompletion(
+              dateKey: session.dateKey!,
+              hintsUsed: session.hintsUsed,
+              stars: stars,
+            );
+        analytics.log(AnalyticsEvents.dailyCompleted, {
+          'stars': stars,
+          'hintsUsed': session.hintsUsed,
+        });
+        ref.read(statsControllerProvider.notifier).recordWin(
+              clean: cleanBadge,
+              threeStarDaily: stars == 3,
+            );
+
+      case GameMode.archive:
+        earned = config.archiveClearCoins;
+        ref.read(dailyControllerProvider.notifier).recordArchiveCompletion(
+              dateKey: session.dateKey!,
+              hintsUsed: session.hintsUsed,
+              stars: stars,
+            );
+        analytics.log(AnalyticsEvents.archivePlayed, {'stars': stars});
+        ref.read(statsControllerProvider.notifier).recordWin(clean: cleanBadge);
+
+      case GameMode.zen:
+        final zen = ref.read(zenControllerProvider.notifier);
+        final cleared = zen.recordClear(clean: flowClean);
+        earned = config.coinsPerClear * (session.isFinale ? 2 : 1);
+
+        // Chapter chest: the finale's clear closes the chapter.
+        if (cleared % Difficulty.clearsPerLevel == 0) {
+          earned += config.chapterBonus;
+          analytics.log(AnalyticsEvents.chapterComplete, {
+            'chapter': cleared ~/ Difficulty.clearsPerLevel,
+          });
+        }
+
+        // Flow-chain milestones (paid once, at exactly the milestone length).
+        final chain = ref.read(zenControllerProvider).chain;
+        final milestone = switch (chain) {
+          3 => config.chainMilestone1,
+          7 => config.chainMilestone2,
+          15 => config.chainMilestone3,
+          _ => 0,
+        };
+        if (milestone > 0) {
+          earned += milestone;
+          analytics.log(AnalyticsEvents.chainMilestone, {'chain': chain});
+        }
+
+        // Mercy director: struggle on this board eases the next two.
+        if (session.wrongTraces >= 3 || _sawStuck) _mercyBoards = 2;
+
+        ref.read(statsControllerProvider.notifier).recordWin(clean: cleanBadge);
     }
 
     wallet.earn(earned, reason: 'clear');
-    ref.read(analyticsServiceProvider).log(AnalyticsEvents.boardClear, {
+    analytics.log(AnalyticsEvents.boardClear, {
       'mode': session.mode.name,
       'difficulty': session.puzzle.difficulty.id,
       'groups': session.totalGroups,
@@ -164,6 +287,7 @@ class GameController extends Notifier<GameSession?> {
       'stars': stars,
       'coinsEarned': earned,
     });
+    return earned;
   }
 
   int _freshSeed() {

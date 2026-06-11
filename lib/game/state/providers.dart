@@ -43,13 +43,14 @@ final gameConfigProvider = Provider<GameConfig>(
 );
 
 /// The palette to render with: the user's selection if it's unlocked (free,
-/// owned with coins, or Premium), otherwise the free default.
+/// owned, or Premium for coin-priced ones; exclusives are owned-or-nothing),
+/// otherwise the free default.
 final paletteProvider = Provider<GamePalette>((ref) {
   final settings = ref.watch(settingsControllerProvider);
   final premium = ref.watch(entitlementControllerProvider);
   final selected = GamePalette.byId(settings.paletteId);
-  final unlocked = selected.isFree ||
-      premium ||
-      settings.ownedPaletteIds.contains(selected.id);
+  final owned = settings.ownedPaletteIds.contains(selected.id);
+  final unlocked =
+      selected.exclusive ? owned : (selected.isFree || premium || owned);
   return unlocked ? selected : GamePalette.clay;
 });
