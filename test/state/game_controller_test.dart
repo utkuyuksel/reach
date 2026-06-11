@@ -174,6 +174,41 @@ void main() {
     expect(c.read(zenControllerProvider).bestChain, 1);
   });
 
+  test('ladder boards record their tier key, pay by tier, never streak',
+      () async {
+    final c = await _container();
+    final config = c.read(gameConfigProvider);
+    final ctrl = c.read(gameControllerProvider.notifier);
+    final start = c.read(walletControllerProvider);
+
+    ctrl.startWithPuzzle(_puzzle(), GameMode.ladder, dateKey: '2026-06-11#h');
+    ctrl.submitPath([0, 1]);
+    ctrl.submitPath([2, 3]);
+
+    final daily = c.read(dailyControllerProvider);
+    expect(daily.isCompleted('2026-06-11#h'), isTrue);
+    expect(daily.currentStreak, 0);
+    expect(c.read(walletControllerProvider), start + config.ladderHardCoins);
+    // Ladder keys never count toward the monthly medal.
+    final dailyCtrl = c.read(dailyControllerProvider.notifier);
+    expect(dailyCtrl.completionsInMonth('2026-06'), 0);
+  });
+
+  test('ladder boards are deterministic per date and tier', () async {
+    final c = await _container();
+    final ctrl = c.read(gameControllerProvider.notifier);
+    ctrl.startLadder(DateTime(2026, 6, 11), hard: true);
+    final a = c.read(gameControllerProvider)!.puzzle;
+    ctrl.startLadder(DateTime(2026, 6, 11), hard: true);
+    final b = c.read(gameControllerProvider)!.puzzle;
+    expect(a.seed, b.seed);
+    expect(a.initialGrid, b.initialGrid);
+    ctrl.startLadder(DateTime(2026, 6, 11), hard: false);
+    final e = c.read(gameControllerProvider)!.puzzle;
+    expect(e.seed == a.seed, isFalse);
+    expect(e.difficulty.id, 'daily-easy');
+  });
+
   test('session coinsEarned is set on win for the win sheet', () async {
     final c = await _container();
     final config = c.read(gameConfigProvider);

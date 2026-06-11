@@ -196,6 +196,24 @@ class _DailyCalendarScreenState extends ConsumerState<DailyCalendarScreen> {
                         },
                       ),
                     ],
+                    const SizedBox(height: 12),
+                    // Today's ladder: easy + hard siblings of the canonical
+                    // board — extra habit points, never the streak.
+                    _LadderRow(
+                      palette: palette,
+                      daily: daily,
+                      easyCoins: config.ladderEasyCoins,
+                      hardCoins: config.ladderHardCoins,
+                      onPlay: (hard) {
+                        ref
+                            .read(gameControllerProvider.notifier)
+                            .startLadder(DateTime.now(), hard: hard);
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const GameScreen()),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 22),
                     // Month header with navigation.
                     Row(
@@ -249,6 +267,112 @@ class _DailyCalendarScreenState extends ConsumerState<DailyCalendarScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Today's two ladder tiers as quiet chips: board size, reward, done state.
+class _LadderRow extends StatelessWidget {
+  final GamePalette palette;
+  final dynamic daily; // DailyRecord
+  final int easyCoins;
+  final int hardCoins;
+  final void Function(bool hard) onPlay;
+
+  const _LadderRow({
+    required this.palette,
+    required this.daily,
+    required this.easyCoins,
+    required this.hardCoins,
+    required this.onPlay,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final today = dateKeyFor(DateTime.now());
+    final easyDone = daily.isCompleted('$today#e') as bool;
+    final hardDone = daily.isCompleted('$today#h') as bool;
+    return Row(
+      children: [
+        Expanded(
+          child: _LadderChip(
+            palette: palette,
+            label: '4×4',
+            coins: easyCoins,
+            done: easyDone,
+            onTap: easyDone ? null : () => onPlay(false),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _LadderChip(
+            palette: palette,
+            label: '6×6',
+            coins: hardCoins,
+            done: hardDone,
+            onTap: hardDone ? null : () => onPlay(true),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LadderChip extends StatelessWidget {
+  final GamePalette palette;
+  final String label;
+  final int coins;
+  final bool done;
+  final VoidCallback? onTap;
+
+  const _LadderChip({
+    required this.palette,
+    required this.label,
+    required this.coins,
+    required this.done,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      onTap: onTap,
+      depth: 1.5,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: done ? palette.tile.withValues(alpha: 0.55) : palette.tile,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: palette.tileEdge),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.stairs_rounded,
+                size: 16, color: done ? palette.line : palette.accent),
+            const SizedBox(width: 8),
+            Text(label,
+                style: AppText.mono(
+                    size: 12.5,
+                    weight: FontWeight.w500,
+                    color: done ? palette.inkSoft : palette.ink,
+                    letterSpacing: 1)),
+            const Spacer(),
+            if (done)
+              Icon(Icons.check_rounded, size: 16, color: palette.good)
+            else ...[
+              Icon(Icons.add_rounded, size: 13, color: palette.accent),
+              Icon(Icons.monetization_on_rounded,
+                  size: 13, color: palette.accent),
+              const SizedBox(width: 2),
+              Text('$coins',
+                  style: AppText.mono(
+                      size: 11.5,
+                      weight: FontWeight.w500,
+                      color: palette.ink)),
+            ],
+          ],
         ),
       ),
     );

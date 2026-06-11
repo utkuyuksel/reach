@@ -8,6 +8,11 @@ enum GameMode {
   /// A past Daily replayed from the calendar/archive: fills the calendar
   /// (medal credit) but never touches the streak; reduced coin reward.
   archive,
+
+  /// A Daily Ladder bonus board (easy/hard tier of today's date): a second
+  /// and third daily habit point. Never touches the streak or the medal —
+  /// the Medium Daily stays the one canonical shared board.
+  ladder,
 }
 
 /// The full state of one playable session: the puzzle, the live [GameState],

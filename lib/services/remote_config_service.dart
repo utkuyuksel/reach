@@ -65,6 +65,10 @@ class GameConfig {
   /// clear + bonus). Archive plays never touch the streak.
   final int archiveClearCoins;
 
+  /// Daily Ladder bonus boards (same date, easy/hard tiers; never streak).
+  final int ladderEasyCoins;
+  final int ladderHardCoins;
+
   /// Free (non-Premium) players can open archive boards this many days back.
   final int freeArchiveDays;
 
@@ -93,6 +97,8 @@ class GameConfig {
     this.winDoubleMultiplier = 2,
     this.premiumDailyFreeHints = 5,
     this.archiveClearCoins = 21,
+    this.ladderEasyCoins = 8,
+    this.ladderHardCoins = 24,
     this.freeArchiveDays = 7,
     this.starTwoStarMaxWrong = 2,
   });

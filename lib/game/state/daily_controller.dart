@@ -196,9 +196,28 @@ class DailyController extends Notifier<DailyRecord> {
 
   // ------------------------------------------------------------- calendar
 
-  /// Completions (live + backfilled) in 'YYYY-MM' [monthKey].
-  int completionsInMonth(String monthKey) =>
-      state.results.keys.where((k) => k.startsWith('$monthKey-')).length;
+  /// Record a Daily Ladder tier completion (key 'YYYY-MM-DD#e' / '#h').
+  /// Ladder boards never touch the streak or the medal calendar.
+  void recordLadderCompletion({
+    required String ladderKey,
+    int hintsUsed = 0,
+    int stars = 3,
+  }) {
+    if (state.isCompleted(ladderKey)) return;
+    final results = Map<String, DailyResult>.from(state.results)
+      ..[ladderKey] = DailyResult(
+        dateKey: ladderKey,
+        hintsUsed: hintsUsed,
+        stars: stars,
+      );
+    _save(state.copyWith(results: results));
+  }
+
+  /// Completions (live + backfilled) in 'YYYY-MM' [monthKey]. Only plain
+  /// date keys count — ladder keys ('...#e'/'#h') never feed the medal.
+  int completionsInMonth(String monthKey) => state.results.keys
+      .where((k) => k.length == 10 && k.startsWith('$monthKey-'))
+      .length;
 
   /// The medal earned for [monthKey]. Gold needs every day of the month —
   /// for the current month that is only possible on its final day.

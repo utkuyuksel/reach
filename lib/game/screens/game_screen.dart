@@ -322,7 +322,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     primaryIcon: switch (session.mode) {
                       GameMode.daily => Icons.ios_share_rounded,
                       GameMode.zen => Icons.arrow_forward_rounded,
-                      GameMode.archive => Icons.calendar_month_rounded,
+                      GameMode.archive ||
+                      GameMode.ladder =>
+                        Icons.calendar_month_rounded,
                     },
                     onPrimary: () {
                       if (session.mode == GameMode.daily) {
@@ -362,6 +364,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         return _DetailPill(
           icon: Icons.calendar_month_rounded,
           text: session.dateKey ?? '',
+          palette: palette,
+        );
+      case GameMode.ladder:
+        return _DetailPill(
+          icon: Icons.stairs_rounded,
+          text: (session.dateKey ?? '').endsWith('#h') ? '6×6' : '4×4',
           palette: palette,
         );
       case GameMode.zen:
@@ -408,6 +416,10 @@ class _TopBar extends StatelessWidget {
       GameMode.daily => (Icons.calendar_today_outlined, session.dateKey ?? ''),
       GameMode.archive =>
         (Icons.history_rounded, session.dateKey ?? ''),
+      GameMode.ladder => (
+          Icons.stairs_rounded,
+          (session.dateKey ?? '').endsWith('#h') ? '6×6' : '4×4'
+        ),
       GameMode.zen => (
           session.isFinale ? Icons.diamond_rounded : Icons.all_inclusive,
           'ZEN'

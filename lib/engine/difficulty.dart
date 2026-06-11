@@ -101,6 +101,33 @@ class Difficulty {
   /// Fixed difficulty for the Daily Challenge (same for everyone).
   static const Difficulty daily = medium;
 
+  /// The Daily Ladder's gentle tier (same date, smaller board) — a second
+  /// daily habit point for newcomers and a warm-up for everyone.
+  static const Difficulty dailyEasy = Difficulty(
+    id: 'daily-easy',
+    rows: 4,
+    cols: 4,
+    minValue: 1,
+    maxValue: 5,
+    groupMin: 2,
+    groupMax: 4,
+    decoyMin: 0,
+    decoyMax: 4,
+  );
+
+  /// The Daily Ladder's expert tier — denser decoys on a 6×6 for veterans.
+  static const Difficulty dailyHard = Difficulty(
+    id: 'daily-hard',
+    rows: 6,
+    cols: 6,
+    minValue: 1,
+    maxValue: 9,
+    groupMin: 2,
+    groupMax: 4,
+    decoyMin: 6,
+    decoyMax: 18,
+  );
+
   /// Endless ramp for Zen mode — gentle, and *infinite* (never plateaus).
   /// Difficulty scales like a word search: a bigger grid with more (and
   /// gradually longer) groups, and a larger target — never via multi-digit

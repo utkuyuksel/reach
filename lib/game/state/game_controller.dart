@@ -76,6 +76,20 @@ class GameController extends Notifier<GameSession?> {
     startWithPuzzle(puzzle, GameMode.archive, dateKey: dateKeyFor(date));
   }
 
+  /// Start a Daily Ladder tier for [date]: the easy or hard sibling of that
+  /// day's canonical board. Deterministic per (date, tier), like the Daily.
+  void startLadder(DateTime date, {required bool hard}) {
+    final puzzle = Generator.generateTuned(
+      difficulty: hard ? Difficulty.dailyHard : Difficulty.dailyEasy,
+      seed: Generator.dailySeed(date) * 3 + (hard ? 2 : 1),
+    );
+    startWithPuzzle(
+      puzzle,
+      GameMode.ladder,
+      dateKey: '${dateKeyFor(date)}#${hard ? 'h' : 'e'}',
+    );
+  }
+
   void startZen() {
     final cleared = ref.read(zenControllerProvider).boardsCleared;
     final base = Difficulty.endlessForLevel(cleared);
@@ -243,6 +257,16 @@ class GameController extends Notifier<GameSession?> {
               stars: stars,
             );
         analytics.log(AnalyticsEvents.archivePlayed, {'stars': stars});
+        ref.read(statsControllerProvider.notifier).recordWin(clean: cleanBadge);
+
+      case GameMode.ladder:
+        final hard = session.dateKey!.endsWith('#h');
+        earned = hard ? config.ladderHardCoins : config.ladderEasyCoins;
+        ref.read(dailyControllerProvider.notifier).recordLadderCompletion(
+              ladderKey: session.dateKey!,
+              hintsUsed: session.hintsUsed,
+              stars: stars,
+            );
         ref.read(statsControllerProvider.notifier).recordWin(clean: cleanBadge);
 
       case GameMode.zen:
