@@ -38,6 +38,9 @@ class GameConfig {
   final int mosaicRevealPerClear;
   final int premiumMosaicBonus;
 
+  /// One-time coin chest when the week's mosaic completes (~17 clears).
+  final int mosaicCompleteBonus;
+
   // --- Coin economy: sinks ---
   final int hintCost;
 
@@ -101,6 +104,7 @@ class GameConfig {
     this.mosaicSize = 49,
     this.mosaicRevealPerClear = 3,
     this.premiumMosaicBonus = 1,
+    this.mosaicCompleteBonus = 60,
     this.hintCost = 20,
     this.streakFreezeCost = 150,
     this.maxFreezeTokens = 2,

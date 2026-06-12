@@ -11,6 +11,7 @@ import '../state/entitlement_controller.dart';
 import '../state/game_controller.dart';
 import '../state/mosaic_controller.dart';
 import '../state/providers.dart';
+import '../state/settings_controller.dart';
 import '../state/wallet_controller.dart';
 import '../state/zen_controller.dart';
 import '../theme/app_text.dart';
@@ -347,6 +348,35 @@ class _MosaicCard extends ConsumerWidget {
     final revealed = ctrl.revealed;
     final weekKey = ctrl.currentWeekKey;
 
+    // One-time teaching beat: the first time cells have appeared, the card
+    // breathes twice so the player connects "my clears painted that".
+    final settings = ref.watch(settingsControllerProvider);
+    final introPulse = revealed > 0 && !settings.seenMosaicIntro;
+    if (introPulse) {
+      WidgetsBinding.instance.addPostFrameCallback((_) =>
+          ref.read(settingsControllerProvider.notifier).markMosaicIntroSeen());
+    }
+
+    Widget card = _card(context, ref, config, revealed, weekKey);
+    if (introPulse) {
+      card = TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 1600),
+        curve: Curves.easeInOut,
+        builder: (context, t, child) {
+          // Two gentle breaths: scale follows |sin| of two periods.
+          final breath =
+              (0.5 - (t * 2 - (t * 2).floorToDouble() - 0.5).abs()) * 2;
+          return Transform.scale(scale: 1 + 0.03 * breath, child: child);
+        },
+        child: card,
+      );
+    }
+    return card;
+  }
+
+  Widget _card(BuildContext context, WidgetRef ref, dynamic config,
+      int revealed, String weekKey) {
     return Pressable(
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const MosaicGalleryScreen()),

@@ -43,12 +43,21 @@ class NoopSoundService implements SoundService {
 /// `audioplayers`-backed implementation. One player per SFX so different
 /// effects can overlap; a separate looping player for the ambient pad.
 class AudioPlayersSoundService implements SoundService {
+  /// Ambient music tracks, played in rotation (one per session start).
+  /// Drop licensed royalty-free tracks into assets/music/ (see
+  /// assets/music/LICENSES.md), add them here, and remove the synthesized
+  /// fallback — no other code changes needed.
+  static const _ambientTracks = <String>[
+    'sounds/ambient.wav', // synthesized fallback until curated tracks land
+  ];
+
   final _clear = AudioPlayer();
   final _win = AudioPlayer();
   final _tap = AudioPlayer();
   final _nope = AudioPlayer();
   final _ambient = AudioPlayer();
   bool _ambientPlaying = false;
+  int _trackIndex = 0;
 
   @override
   Future<void> init() async {
@@ -92,7 +101,9 @@ class AudioPlayersSoundService implements SoundService {
     if (_ambientPlaying) return;
     _ambientPlaying = true;
     try {
-      await _ambient.play(AssetSource('sounds/ambient.wav'));
+      final track = _ambientTracks[_trackIndex % _ambientTracks.length];
+      _trackIndex++; // rotate on each session start
+      await _ambient.play(AssetSource(track));
     } catch (_) {
       _ambientPlaying = false;
     }

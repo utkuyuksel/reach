@@ -16,6 +16,8 @@ class SettingsController extends Notifier<Settings> {
   void setColorblind(bool value) => _update(state.copyWith(colorblind: value));
   void setOnboardingDone(bool value) =>
       _update(state.copyWith(onboardingDone: value));
+  void markMosaicIntroSeen() =>
+      _update(state.copyWith(seenMosaicIntro: true));
 
   /// Select an already-unlocked palette.
   void setPalette(String paletteId) =>

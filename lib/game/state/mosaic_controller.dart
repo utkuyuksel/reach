@@ -41,13 +41,15 @@ class MosaicController extends Notifier<MosaicRecord> {
     return next;
   }
 
-  /// Called on every fresh board clear: reveal a few more cells.
-  void onBoardCleared() {
+  /// Called on every fresh board clear: reveal a few more cells. Returns the
+  /// completion chest (coins) when this clear FINISHES the week's artwork,
+  /// 0 otherwise — the caller folds it into the win's coin total.
+  int onBoardCleared() {
     final config = ref.read(gameConfigProvider);
     var r = _rolledOver(state);
     if (r.revealed >= config.mosaicSize) {
       if (!identical(r, state)) _save(r);
-      return; // this week's artwork is already finished
+      return 0; // this week's artwork is already finished
     }
     final premium = ref.read(entitlementControllerProvider);
     final step = config.mosaicRevealPerClear +
@@ -59,7 +61,9 @@ class MosaicController extends Notifier<MosaicRecord> {
       ref
           .read(analyticsServiceProvider)
           .log(AnalyticsEvents.mosaicComplete, {'week': r.weekKey});
+      return config.mosaicCompleteBonus; // the weekly chest
     }
+    return 0;
   }
 
   void _save(MosaicRecord r) {

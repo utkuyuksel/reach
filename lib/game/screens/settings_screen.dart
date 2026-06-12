@@ -10,6 +10,7 @@ import '../theme/palette.dart';
 import '../widgets/paper_background.dart';
 import '../widgets/pressable.dart';
 import '../widgets/soft_button.dart';
+import 'help_screen.dart';
 import 'shop_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -91,6 +92,15 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 22),
                     _SectionLabel(palette: palette, text: 'ABOUT'),
+                    _LinkRow(
+                      palette: palette,
+                      icon: Icons.help_outline_rounded,
+                      label: 'How things work',
+                      trailing: Icons.chevron_right_rounded,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const HelpScreen()),
+                      ),
+                    ),
                     _LinkRow(
                       palette: palette,
                       icon: Icons.privacy_tip_outlined,

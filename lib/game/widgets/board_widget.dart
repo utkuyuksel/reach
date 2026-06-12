@@ -143,7 +143,10 @@ class _BoardWidgetState extends State<BoardWidget>
   void _start(Offset p) {
     final cell = _cellAt(p);
     if (cell == null || _grid.at(cell) == null) return;
-    if (_grid.at(cell)!.modifier == TileModifier.locked) return;
+    if (_grid.at(cell)!.modifier == TileModifier.locked) {
+      _flashLocked(cell);
+      return;
+    }
     setState(() => _path = [cell]);
     _tick();
   }
@@ -183,6 +186,16 @@ class _BoardWidgetState extends State<BoardWidget>
         if (mounted) setState(() => _reject = const []);
       });
     }
+  }
+
+  /// Tapping a locked tile answers WHY it won't trace: the familiar reject
+  /// flash on the tile itself (same visual language as a wrong sum).
+  void _flashLocked(int cell) {
+    if (widget.hapticsEnabled) HapticFeedback.lightImpact();
+    setState(() => _reject = [cell]);
+    Future.delayed(const Duration(milliseconds: 340), () {
+      if (mounted) setState(() => _reject = const []);
+    });
   }
 
   void _tick() {

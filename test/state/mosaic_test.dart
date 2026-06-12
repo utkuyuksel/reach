@@ -43,6 +43,23 @@ void main() {
     expect(mosaic.isComplete, isTrue);
   });
 
+  test('finishing the artwork pays the weekly chest exactly once', () async {
+    await setup();
+    final config = c.read(gameConfigProvider);
+    var chest = 0;
+    var payouts = 0;
+    for (var i = 0; i < 100 && !mosaic.isComplete; i++) {
+      final got = mosaic.onBoardCleared();
+      if (got > 0) {
+        chest = got;
+        payouts++;
+      }
+    }
+    expect(chest, config.mosaicCompleteBonus);
+    expect(payouts, 1);
+    expect(mosaic.onBoardCleared(), 0); // already complete → no re-pay
+  });
+
   test('Premium reveals a bonus cell per clear', () async {
     await setup();
     final config = c.read(gameConfigProvider);

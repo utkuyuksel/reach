@@ -28,6 +28,9 @@ class Settings {
   /// Palette ids unlocked with coins (Premium unlocks all regardless).
   final List<String> ownedPaletteIds;
 
+  /// One-time contextual teaching beats already shown.
+  final bool seenMosaicIntro;
+
   const Settings({
     this.hapticsOn = true,
     this.sfxOn = true,
@@ -36,6 +39,7 @@ class Settings {
     this.paletteId = 'clay',
     this.onboardingDone = false,
     this.ownedPaletteIds = const [],
+    this.seenMosaicIntro = false,
   });
 
   Settings copyWith({
@@ -46,6 +50,7 @@ class Settings {
     String? paletteId,
     bool? onboardingDone,
     List<String>? ownedPaletteIds,
+    bool? seenMosaicIntro,
   }) =>
       Settings(
         hapticsOn: hapticsOn ?? this.hapticsOn,
@@ -55,6 +60,7 @@ class Settings {
         paletteId: paletteId ?? this.paletteId,
         onboardingDone: onboardingDone ?? this.onboardingDone,
         ownedPaletteIds: ownedPaletteIds ?? this.ownedPaletteIds,
+        seenMosaicIntro: seenMosaicIntro ?? this.seenMosaicIntro,
       );
 
   Map<String, dynamic> toMap() => {
@@ -65,6 +71,7 @@ class Settings {
         'paletteId': paletteId,
         'onboardingDone': onboardingDone,
         'ownedPaletteIds': ownedPaletteIds,
+        'seenMosaicIntro': seenMosaicIntro,
       };
 
   factory Settings.fromMap(Map<String, dynamic> m) => Settings(
@@ -76,6 +83,7 @@ class Settings {
         onboardingDone: m['onboardingDone'] as bool? ?? false,
         ownedPaletteIds:
             (m['ownedPaletteIds'] as List?)?.cast<String>() ?? const [],
+        seenMosaicIntro: m['seenMosaicIntro'] as bool? ?? false,
       );
 }
 

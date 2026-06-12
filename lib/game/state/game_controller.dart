@@ -393,9 +393,11 @@ class GameController extends Notifier<GameSession?> {
     }
 
     // Every fresh clear, in any mode, reveals a few cells of this week's
-    // mosaic — the cross-mode habit-stacking hook.
+    // mosaic — the cross-mode habit-stacking hook. Finishing the artwork
+    // pays its weekly chest right into this win.
     if (freshWin) {
-      ref.read(mosaicControllerProvider.notifier).onBoardCleared();
+      earned +=
+          ref.read(mosaicControllerProvider.notifier).onBoardCleared();
     }
 
     wallet.earn(earned, reason: 'clear');
