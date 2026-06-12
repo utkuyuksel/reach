@@ -260,6 +260,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     session: session,
                     onHome: _goHome,
                     coins: coins,
+                    zenLevel: ref.watch(zenControllerProvider).boardsCleared + 1,
                   ),
                   const SizedBox(height: 8),
                   TargetDisplay(target: session.target, palette: palette),
@@ -424,10 +425,14 @@ class _TopBar extends StatelessWidget {
   final VoidCallback onHome;
   final int? coins;
 
+  /// Current Zen level (live), shown in the mode chip during Zen.
+  final int zenLevel;
+
   const _TopBar({
     required this.palette,
     required this.session,
     required this.onHome,
+    required this.zenLevel,
     this.coins,
   });
 
@@ -443,7 +448,7 @@ class _TopBar extends StatelessWidget {
         ),
       GameMode.zen => (
           session.isFinale ? Icons.diamond_rounded : Icons.all_inclusive,
-          'ZEN'
+          'LV $zenLevel'
         ),
     };
     return Padding(

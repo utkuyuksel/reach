@@ -35,6 +35,30 @@ class AppText {
     );
   }
 
+  /// Fraunces tuned for SMALL numerals on tiles: the text-grade optical size
+  /// (thicker strokes than the display cut), a slightly heavier weight, and
+  /// lining+tabular figures so 3/4/5 stop dancing on the baseline. This is
+  /// what keeps the board crisp — the 144-opsz display cut goes blurry at
+  /// tile sizes.
+  static TextStyle tileNumber({
+    required double size,
+    Color? color,
+  }) {
+    return TextStyle(
+      fontFamily: frauncesFamily,
+      fontSize: size,
+      color: color,
+      fontVariations: const [
+        FontVariation('wght', 640),
+        FontVariation('opsz', 18),
+      ],
+      fontFeatures: const [
+        FontFeature.liningFigures(),
+        FontFeature.tabularFigures(),
+      ],
+    );
+  }
+
   /// DM Mono for labels and meta text.
   static TextStyle mono({
     required double size,

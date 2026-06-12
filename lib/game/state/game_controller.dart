@@ -21,7 +21,6 @@ import 'zen_controller.dart';
 /// records Daily/Zen/archive + emits analytics. UI concerns (ads, share, hint
 /// cost, drag) live in the screen/widgets.
 class GameController extends Notifier<GameSession?> {
-  int _zenNonce = 0;
   bool _winRecorded = false;
 
   /// Set when the player hits a dead end this board (mercy signal). Survives
@@ -100,8 +99,8 @@ class GameController extends Notifier<GameSession?> {
     final position = cleared % Difficulty.clearsPerLevel; // 0..9 in chapter
     final isFinale = position == Difficulty.clearsPerLevel - 1;
     final difficulty = _modulated(base, position, isFinale);
-    var puzzle =
-        Generator.generateTuned(difficulty: difficulty, seed: _freshSeed());
+    var puzzle = Generator.generateTuned(
+        difficulty: difficulty, seed: _levelSeed(cleared + 1));
     puzzle = Generator.decorate(
       puzzle,
       gold: _goldFor(cleared, isFinale, puzzle.seed),
@@ -422,11 +421,13 @@ class GameController extends Notifier<GameSession?> {
     return earned;
   }
 
-  int _freshSeed() {
-    _zenNonce++;
-    final base = DateTime.now().microsecondsSinceEpoch;
-    return (base ^ (_zenNonce * 0x9E3779B1)) & 0x7FFFFFFFFFFFFFFF;
-  }
+  /// Deterministic seed for Zen level N: the SAME Level 5 for every player,
+  /// every device, forever ("level 23'te takıldım" is a shared experience,
+  /// and future level-keyed content/leaderboards stay possible). The only
+  /// per-player variance is the invisible mercy director, which may serve a
+  /// struggling player a gentler VARIANT of the level.
+  int _levelSeed(int level) =>
+      (0x2EAC4 ^ (level * 0x9E3779B97F4A7C15)) & 0x7FFFFFFFFFFFFFFF;
 }
 
 final gameControllerProvider =

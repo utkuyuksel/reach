@@ -152,7 +152,7 @@ void main() {
     final earned = c.read(gameControllerProvider)!.coinsEarned;
     expect(earned >= config.coinsPerClear * 2 + config.chapterBonus, isTrue);
     expect(c.read(walletControllerProvider), before + earned);
-    expect(zen.level, 2); // chapter rolled over
+    expect(zen.level, 11); // one board = one level
   });
 
   test('flow chain grows on clean clears and resets on a wrong trace',
@@ -192,6 +192,18 @@ void main() {
     // Ladder keys never count toward the monthly medal.
     final dailyCtrl = c.read(dailyControllerProvider.notifier);
     expect(dailyCtrl.completionsInMonth('2026-06'), 0);
+  });
+
+  test('Zen levels are deterministic: Level N is the same for everyone',
+      () async {
+    final a = await _container();
+    final b = await _container();
+    a.read(gameControllerProvider.notifier).startZen();
+    b.read(gameControllerProvider.notifier).startZen();
+    final pa = a.read(gameControllerProvider)!.puzzle;
+    final pb = b.read(gameControllerProvider)!.puzzle;
+    expect(pa.seed, pb.seed);
+    expect(pa.initialGrid, pb.initialGrid); // identical Level 1 everywhere
   });
 
   test('ladder boards are deterministic per date and tier', () async {

@@ -54,6 +54,10 @@ class _BoardWidgetState extends State<BoardWidget>
 
   List<int> _path = [];
   List<int> _reject = const [];
+
+  /// Brief teaching flash: tapping a veiled "?" rings it and its neighbours —
+  /// the wordless answer to "how does this open?" (clears open neighbours).
+  List<int> _teach = const [];
   double _cell = 0;
 
   /// Pop "echoes" of just-cleared tiles: a brief scale+fade+drift so a clear
@@ -190,6 +194,20 @@ class _BoardWidgetState extends State<BoardWidget>
     if (_path.isEmpty) return;
     final path = _path;
     setState(() => _path = []);
+    // A single tap on a veiled tile is a question, not a trace: answer it by
+    // ringing the tile and the neighbours whose clears will lift the fog.
+    if (path.length == 1 &&
+        _grid.at(path.first)?.modifier == TileModifier.veiled) {
+      final cells = [
+        path.first,
+        ..._grid.neighborsOf(path.first).where((n) => _grid.at(n) != null),
+      ];
+      setState(() => _teach = cells);
+      Future.delayed(const Duration(milliseconds: 650), () {
+        if (mounted) setState(() => _teach = const []);
+      });
+      return;
+    }
     final accepted = widget.onSubmitPath(path);
     if (!accepted && path.length >= 2) {
       // Gentle bounce: briefly flash the rejected trace.
@@ -220,6 +238,7 @@ class _BoardWidgetState extends State<BoardWidget>
       return _isMatch ? TileState.match : TileState.path;
     }
     if (_reject.contains(index)) return TileState.reject;
+    if (_teach.contains(index)) return TileState.hint;
     if (widget.hintCells.contains(index)) return TileState.hint;
     return TileState.normal;
   }

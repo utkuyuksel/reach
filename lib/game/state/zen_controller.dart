@@ -10,11 +10,12 @@ class ZenController extends Notifier<ZenRecord> {
   @override
   ZenRecord build() => ref.read(storageServiceProvider).loadZen();
 
-  /// The chapter a player is currently on (1-based for display; one chapter =
-  /// [Difficulty.clearsPerLevel] boards, matching the home card's progress bar).
-  int get level => state.boardsCleared ~/ Difficulty.clearsPerLevel + 1;
+  /// The level the player is ON (1-based): one board = one level — the
+  /// many-levels feel (owner decision). Every 10th level is a milestone
+  /// finale with double pay + chest; modifiers roll out on the same cycle.
+  int get level => state.boardsCleared + 1;
 
-  /// Boards cleared within the current chapter (0-based position).
+  /// Position inside the current 10-level milestone cycle (0-based).
   int get chapterPosition => state.boardsCleared % Difficulty.clearsPerLevel;
 
   /// DEBUG-ONLY playtest shortcut: jump the progression forward without
