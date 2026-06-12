@@ -44,6 +44,10 @@ class GameSession {
   /// the chapter. Marked with a small gem on the game screen.
   final bool isFinale;
 
+  /// A hand-crafted modifier INTRO level: the game screen coaches the player
+  /// through it with the tutorial's gliding finger.
+  final bool isIntro;
+
   /// Total coins granted for this board's win (clear + bonuses), set by the
   /// controller at win time so the UI never re-derives economy math.
   final int coinsEarned;
@@ -58,6 +62,7 @@ class GameSession {
     this.stuck = false,
     this.dateKey,
     this.isFinale = false,
+    this.isIntro = false,
     this.coinsEarned = 0,
   });
 
@@ -84,6 +89,7 @@ class GameSession {
         stuck: stuck ?? this.stuck,
         dateKey: dateKey,
         isFinale: isFinale,
+        isIntro: isIntro,
         coinsEarned: coinsEarned ?? this.coinsEarned,
       );
 }

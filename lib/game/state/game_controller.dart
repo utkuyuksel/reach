@@ -8,6 +8,7 @@ import '../../engine/models/tile.dart';
 import '../../engine/solver.dart';
 import '../../services/analytics_service.dart';
 import '../../util/date_key.dart';
+import '../intro_levels.dart';
 import 'daily_controller.dart';
 import 'game_session.dart';
 import 'mosaic_controller.dart';
@@ -41,6 +42,7 @@ class GameController extends Notifier<GameSession?> {
     GameMode mode, {
     String? dateKey,
     bool isFinale = false,
+    bool isIntro = false,
   }) {
     _winRecorded = false;
     _sawStuck = false;
@@ -50,6 +52,7 @@ class GameController extends Notifier<GameSession?> {
       state: GameState.fromPuzzle(puzzle),
       dateKey: dateKey,
       isFinale: isFinale,
+      isIntro: isIntro,
     );
     ref.read(analyticsServiceProvider).log(AnalyticsEvents.boardStart, {
       'mode': mode.name,
@@ -95,6 +98,15 @@ class GameController extends Notifier<GameSession?> {
 
   void startZen() {
     final cleared = ref.read(zenControllerProvider).boardsCleared;
+
+    // A modifier's debut level is a hand-crafted, coached intro board
+    // (industry standard: every new obstacle gets one guided level).
+    final intro = introPuzzleForLevel(cleared + 1);
+    if (intro != null) {
+      startWithPuzzle(intro, GameMode.zen, isIntro: true);
+      return;
+    }
+
     final base = Difficulty.endlessForLevel(cleared);
     final position = cleared % Difficulty.clearsPerLevel; // 0..9 in chapter
     final isFinale = position == Difficulty.clearsPerLevel - 1;

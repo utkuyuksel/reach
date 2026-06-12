@@ -490,9 +490,8 @@ class _GhostPop extends StatelessWidget {
                   alignment: Alignment.center,
                   child: Text(
                     '${ghost.value}',
-                    style: AppText.fraunces(
-                      size: size * 0.40,
-                      weight: 600,
+                    style: AppText.tileNumber(
+                      size: size * 0.42,
                       color: Colors.white,
                     ),
                   ),

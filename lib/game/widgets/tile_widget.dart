@@ -79,17 +79,15 @@ class TileWidget extends StatelessWidget {
                 : veiled
                 ? Text(
                     '?',
-                    style: AppText.fraunces(
+                    style: AppText.tileNumber(
                       size: size * 0.40,
-                      weight: 600,
                       color: textColor.withValues(alpha: 0.45),
                     ),
                   )
                 : Text(
                     '$value',
-                    style: AppText.fraunces(
-                      size: size * 0.40,
-                      weight: 600,
+                    style: AppText.tileNumber(
+                      size: size * 0.42,
                       color: textColor,
                     ),
                   ),

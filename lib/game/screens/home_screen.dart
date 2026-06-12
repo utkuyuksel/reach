@@ -605,7 +605,7 @@ class _LevelProgress extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'LV ${cleared ~/ 10 + 1} · ${cleared % 10}/10',
+          'LV ${cleared + 1}',
           style: AppText.mono(
             size: 11,
             color: palette.inkSoft,

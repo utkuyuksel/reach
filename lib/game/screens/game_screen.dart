@@ -246,6 +246,18 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
     final showOnboarding = !settings.onboardingDone && !session.isWon;
 
+    // Intro levels: coach the next still-complete group, exactly like the
+    // first-run tutorial (gliding finger + rings). Wordless teaching.
+    var coach = const <int>[];
+    if (session.isIntro && !session.isWon) {
+      for (final group in session.puzzle.groups) {
+        if (group.every((i) => session.state.grid.at(i) != null)) {
+          coach = group;
+          break;
+        }
+      }
+    }
+
     return Scaffold(
       backgroundColor: palette.paper,
       body: PaperBackground(
@@ -274,7 +286,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                         palette: palette,
                         colorblind: settings.colorblind,
                         hapticsEnabled: settings.hapticsOn,
-                        hintCells: session.hintCells,
+                        hintCells:
+                            coach.isNotEmpty ? coach : session.hintCells,
+                        coachPath: coach,
                         onTick: () => _sfx((s) => s.tap()),
                         onSubmitPath: _onSubmit,
                       ),

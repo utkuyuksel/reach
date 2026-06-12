@@ -35,27 +35,21 @@ class AppText {
     );
   }
 
-  /// Fraunces tuned for SMALL numerals on tiles: the text-grade optical size
-  /// (thicker strokes than the display cut), a slightly heavier weight, and
-  /// lining+tabular figures so 3/4/5 stop dancing on the baseline. This is
-  /// what keeps the board crisp — the 144-opsz display cut goes blurry at
-  /// tile sizes.
+  /// Numerals on TILES — the one surface where legibility beats brand
+  /// typography. Fraunces' oldstyle serif digits (3/4/5 especially) read
+  /// soft and ambiguous at tile sizes, so tiles use DM Mono: geometric,
+  /// lining, tabular by design — the number-puzzle industry standard
+  /// (Sudoku.com, Number Match). Fraunces stays on the big target number
+  /// and titles, where the display cut shines.
   static TextStyle tileNumber({
     required double size,
     Color? color,
   }) {
     return TextStyle(
-      fontFamily: frauncesFamily,
+      fontFamily: monoFamily,
       fontSize: size,
+      fontWeight: FontWeight.w500,
       color: color,
-      fontVariations: const [
-        FontVariation('wght', 640),
-        FontVariation('opsz', 18),
-      ],
-      fontFeatures: const [
-        FontFeature.liningFigures(),
-        FontFeature.tabularFigures(),
-      ],
     );
   }
 
