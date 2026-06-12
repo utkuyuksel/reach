@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -218,6 +219,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ref.read(gameControllerProvider.notifier).startZen();
                     _openGame();
                   },
+                  // Playtest shortcut, DEBUG BUILDS ONLY: long-press jumps
+                  // +10 boards so late-chapter content is reachable fast.
+                  onLongPress: kDebugMode
+                      ? () => ref
+                          .read(zenControllerProvider.notifier)
+                          .debugAdvance(10)
+                      : null,
                 ),
                 const SizedBox(height: 16),
                 _MosaicCard(palette: palette),

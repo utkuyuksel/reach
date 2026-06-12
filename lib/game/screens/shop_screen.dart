@@ -470,28 +470,32 @@ class _ThemeTile extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
+            // The tile's background is the THEME's own paper, so its text and
+            // icons must use the theme's own ink/accent — otherwise dark
+            // themes (Midnight, Ember) render dark-on-dark and disappear.
             Text(palette.name,
-                style: AppText.mono(size: 11, color: current.ink)),
+                style: AppText.mono(size: 11, color: palette.ink)),
             const SizedBox(height: 6),
             if (selected)
-              Icon(Icons.check_circle_rounded, size: 16, color: current.accent)
+              Icon(Icons.check_circle_rounded,
+                  size: 16, color: palette.accent)
             else if (unlocked)
-              Icon(Icons.circle_outlined, size: 14, color: current.inkSoft)
+              Icon(Icons.circle_outlined, size: 14, color: palette.inkSoft)
             else if (palette.exclusive)
               // Starter Pack exclusive — never coin-priced.
-              Icon(Icons.redeem_rounded, size: 14, color: current.accent)
+              Icon(Icons.redeem_rounded, size: 14, color: palette.accent)
             else
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.monetization_on_rounded,
-                      size: 12, color: current.accent),
+                      size: 12, color: palette.accent),
                   const SizedBox(width: 3),
                   Text('${palette.coinPrice}',
                       style: AppText.mono(
                           size: 11,
                           weight: FontWeight.w500,
-                          color: current.ink)),
+                          color: palette.ink)),
                 ],
               ),
           ],

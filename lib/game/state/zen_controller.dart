@@ -17,6 +17,16 @@ class ZenController extends Notifier<ZenRecord> {
   /// Boards cleared within the current chapter (0-based position).
   int get chapterPosition => state.boardsCleared % Difficulty.clearsPerLevel;
 
+  /// DEBUG-ONLY playtest shortcut: jump the progression forward without
+  /// playing (gated behind kDebugMode at the call site — never reachable in
+  /// release builds).
+  void debugAdvance(int boards) {
+    final updated =
+        state.copyWith(boardsCleared: state.boardsCleared + boards);
+    state = updated;
+    ref.read(storageServiceProvider).saveZen(updated);
+  }
+
   /// Records a board clear and updates the flow chain. [clean] = no wrong
   /// traces and no hints. Returns the new total cleared.
   int recordClear({required bool clean}) {
