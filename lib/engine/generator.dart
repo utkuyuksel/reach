@@ -126,8 +126,9 @@ class Generator {
     int veiled = 0,
     int gold = 0,
     int locked = 0,
+    int wild = 0,
   }) {
-    if (veiled <= 0 && gold <= 0 && locked <= 0) return puzzle;
+    if (veiled <= 0 && gold <= 0 && locked <= 0 && wild <= 0) return puzzle;
     final grid = puzzle.initialGrid;
     final rng = DeterministicRng(puzzle.seed ^ 0x5DEC0);
 
@@ -185,6 +186,24 @@ class Generator {
     apply(goldSet, TileModifier.gold);
     apply(veilSet, TileModifier.veiled);
     apply(lockSet, TileModifier.locked);
+
+    // Wild (max 1 by schedule, clamp anyway): first shuffled cell free of
+    // other modifiers. Keeps its hidden construction value (solver-exact).
+    if (wild > 0) {
+      var placed = 0;
+      for (final cell in cells) {
+        if (placed >= wild.clamp(0, 1)) break;
+        if (goldSet.contains(cell) ||
+            veilSet.contains(cell) ||
+            lockSet.contains(cell)) {
+          continue;
+        }
+        final t = newCells[cell]!;
+        newCells[cell] =
+            Tile(id: t.id, value: t.value, modifier: TileModifier.wild);
+        placed++;
+      }
+    }
 
     return Puzzle(
       initialGrid: Grid(rows: grid.rows, cols: grid.cols, cells: newCells),

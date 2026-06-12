@@ -26,6 +26,9 @@ class TileWidget extends StatelessWidget {
   /// Untraceable until a neighbouring group clears (small lock badge).
   final bool locked;
 
+  /// Shows ✦ and absorbs whatever the trace is missing.
+  final bool wild;
+
   const TileWidget({
     super.key,
     required this.value,
@@ -36,6 +39,7 @@ class TileWidget extends StatelessWidget {
     this.veiled = false,
     this.gold = false,
     this.locked = false,
+    this.wild = false,
   });
 
   @override
@@ -66,7 +70,13 @@ class TileWidget extends StatelessWidget {
       child: Stack(
         children: [
           Center(
-            child: veiled
+            child: wild
+                ? Icon(Icons.auto_awesome_rounded,
+                    size: size * 0.34,
+                    color: state == TileState.match || state == TileState.path
+                        ? Colors.white
+                        : palette.accent)
+                : veiled
                 ? Text(
                     '?',
                     style: AppText.fraunces(

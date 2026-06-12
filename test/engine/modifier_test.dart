@@ -199,6 +199,134 @@ void main() {
     }, timeout: const Timeout(Duration(minutes: 3)));
   });
 
+  group('wildcard tiles', () {
+    /// 1×4 [4,5,3,2], target 12, groups [0,1,2],[3...]? — keep simple:
+    /// 2×2 grid, target 12: [4,5] + wild(3-hidden),2? Use a focused board:
+    /// row [4, ✦(5 hidden), 3, 2] target 12; groups [0,1,2] (4+5+3) + [3]?
+    /// Groups must each sum to target, so craft: [4,5,3] and a 1-cell group
+    /// is invalid — use 2×3: groups [0,1,2]=12 and [3,4,5]=12.
+    Puzzle wildBoard() {
+      final grid = Grid(rows: 2, cols: 3, cells: const [
+        Tile(id: 0, value: 4),
+        Tile(id: 1, value: 5, modifier: TileModifier.wild), // hidden 5
+        Tile(id: 2, value: 3),
+        Tile(id: 3, value: 7),
+        Tile(id: 4, value: 2),
+        Tile(id: 5, value: 3),
+      ]);
+      return Puzzle(
+        initialGrid: grid,
+        target: 12,
+        difficulty: Difficulty.easy,
+        seed: 0,
+        groups: const [
+          [0, 1, 2],
+          [3, 4, 5],
+        ],
+      );
+    }
+
+    test('a wild absorbs whatever the trace is missing', () {
+      final s = GameState.fromPuzzle(wildBoard());
+      // 4 + ✦ alone: 4 ≤ 12-1 → the wild covers 8.
+      expect(s.isClearable([0, 1]), isTrue);
+      // 4 + ✦ + 3 = construction group, also fine.
+      expect(s.isClearable([0, 1, 2]), isTrue);
+      // Non-wild overshoot still rejected: 7+2+3=12 exact fine...
+      expect(s.isClearable([3, 4, 5]), isTrue);
+      // ...but 4+3 (no wild, sum 7 ≠ 12) is not clearable.
+      expect(s.isClearable([0, 2]), isFalse);
+    });
+
+    test('a wild trace must leave the wild at least 1 to absorb', () {
+      // Row [9, ✦, 9], target 12: 9+✦ ok (✦=3); 9+✦+9=18 non-wild sum
+      // exceeds target-1 → rejected.
+      final grid = Grid(rows: 1, cols: 3, cells: const [
+        Tile(id: 0, value: 9),
+        Tile(id: 1, value: 3, modifier: TileModifier.wild),
+        Tile(id: 2, value: 9),
+      ]);
+      final p = Puzzle(
+        initialGrid: grid,
+        target: 12,
+        difficulty: Difficulty.easy,
+        seed: 0,
+        groups: const [
+          [0, 1],
+          [2],
+        ], // groups unused by isClearable
+      );
+      final s = GameState.fromPuzzle(p);
+      expect(s.isClearable([0, 1]), isTrue); // 9 ≤ 11
+      expect(s.isClearable([0, 1, 2]), isFalse); // 18 > 11
+    });
+
+    test('hasMove sees wild moves (and true isolation is still stuck)', () {
+      // Wild with one unlocked neighbour → always a move.
+      final lively = Grid(rows: 1, cols: 2, cells: const [
+        Tile(id: 0, value: 9, modifier: TileModifier.wild),
+        Tile(id: 1, value: 9),
+      ]);
+      expect(Solver.hasMove(lively, 12), isTrue);
+      // Wild whose only neighbour is locked → genuinely stuck.
+      final gated = Grid(rows: 1, cols: 2, cells: const [
+        Tile(id: 0, value: 9, modifier: TileModifier.wild),
+        Tile(id: 1, value: 9, modifier: TileModifier.locked),
+      ]);
+      expect(Solver.hasMove(gated, 12), isFalse);
+    });
+
+    test('the construction solution still wins (hidden value keeps solver exact)',
+        () {
+      var s = GameState.fromPuzzle(wildBoard());
+      for (final g in s.puzzle.groups) {
+        s = s.submitPath(g);
+      }
+      expect(s.isWon, isTrue);
+      // And the hint/partition machinery still works on a wild board.
+      final fresh = GameState.fromPuzzle(wildBoard());
+      expect(Solver.hint(fresh.puzzle, fresh.grid), isNotNull);
+    });
+
+    test('decorate places at most one wild, disjoint from other modifiers',
+        () {
+      for (var seed = 0; seed < 200; seed++) {
+        final p = Generator.decorate(
+          Generator.generate(difficulty: Difficulty.medium, seed: seed),
+          veiled: 3,
+          gold: 1,
+          locked: 1,
+          wild: 1,
+        );
+        var wilds = 0;
+        for (var i = 0; i < p.initialGrid.totalCells; i++) {
+          final t = p.initialGrid.at(i)!;
+          if (t.modifier == TileModifier.wild) wilds++;
+        }
+        expect(wilds, 1, reason: 'seed $seed');
+        // Replay the construction groups (locked groups last, swept).
+        var s = GameState.fromPuzzle(p);
+        var pending = List<List<int>>.from(p.groups);
+        var progress = true;
+        while (pending.isNotEmpty && progress) {
+          progress = false;
+          final rest = <List<int>>[];
+          for (final g in pending) {
+            final next = s.submitPath(g);
+            if (identical(next, s)) {
+              rest.add(g);
+            } else {
+              s = next;
+              progress = true;
+            }
+          }
+          pending = rest;
+        }
+        expect(s.isWon, isTrue, reason: 'seed $seed not winnable with wild');
+      }
+    }, timeout: const Timeout(Duration(minutes: 3)));
+  });
+
   group('decorated stress (values & winnability survive decoration)', () {
     test('2k medium boards with veil+gold replay to a win', () {
       for (var seed = 0; seed < 2000; seed++) {

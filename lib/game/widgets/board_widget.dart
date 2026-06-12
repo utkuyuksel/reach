@@ -116,16 +116,28 @@ class _BoardWidgetState extends State<BoardWidget>
     )..repeat();
   }
 
+  /// Sum of NON-WILD tiles in the trace (a wild has no face value).
   int get _sum {
     var s = 0;
     for (final i in _path) {
       final t = _grid.at(i);
-      if (t != null) s += t.value;
+      if (t != null && t.modifier != TileModifier.wild) s += t.value;
     }
     return s;
   }
 
-  bool get _isMatch => _path.isNotEmpty && _sum == widget.target;
+  int get _pathWilds => _path
+      .where((i) => _grid.at(i)?.modifier == TileModifier.wild)
+      .length;
+
+  /// Match rule mirrors the engine: exact sum, or wilds absorb the rest.
+  bool get _isMatch {
+    if (_path.isEmpty) return false;
+    final wilds = _pathWilds;
+    return wilds == 0
+        ? _sum == widget.target
+        : _sum <= widget.target - wilds;
+  }
 
   /// While a veiled tile is in the trace, the running sum stays a mystery —
   /// the match-green state is the only tell. Probing the fog is the game.
@@ -305,6 +317,7 @@ class _BoardWidgetState extends State<BoardWidget>
               veiled: tile.modifier == TileModifier.veiled,
               gold: tile.modifier == TileModifier.gold,
               locked: tile.modifier == TileModifier.locked,
+              wild: tile.modifier == TileModifier.wild,
             ),
     );
   }
@@ -378,7 +391,11 @@ class _BoardWidgetState extends State<BoardWidget>
             ],
           ),
           child: Text(
-            _pathHasVeiled && !match ? '?' : '$_sum',
+            _pathHasVeiled && !match
+                ? '?'
+                : _pathWilds > 0
+                    ? '$_sum+✦'
+                    : '$_sum',
             style: AppText.mono(
               size: 13,
               weight: FontWeight.w500,

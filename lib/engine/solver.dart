@@ -46,9 +46,18 @@ class Solver {
   /// Early-exits on the first move found.
   static bool hasMove(Grid grid, int target, {int maxLen = 64}) {
     for (final start in grid.occupiedIndices()) {
-      if (grid.at(start)!.modifier == TileModifier.locked) continue;
-      if (_hasPath(grid, target, start, 1 << start, grid.at(start)!.value,
-          maxLen)) {
+      final t = grid.at(start)!;
+      if (t.modifier == TileModifier.locked) continue;
+      if (t.modifier == TileModifier.wild) {
+        // A wild + any unlocked neighbour always clears: the neighbour's
+        // value ≤ maxValue < target, so the wild can absorb the rest.
+        for (final n in grid.neighborsOf(start)) {
+          final nt = grid.at(n);
+          if (nt != null && nt.modifier != TileModifier.locked) return true;
+        }
+        continue; // isolated wild — fall through to normal search
+      }
+      if (_hasPath(grid, target, start, 1 << start, t.value, maxLen)) {
         return true;
       }
     }
@@ -69,6 +78,7 @@ class Solver {
       final t = grid.at(nb);
       if (t == null ||
           t.modifier == TileModifier.locked ||
+          t.modifier == TileModifier.wild || // wild moves found via shortcut
           (mask & (1 << nb)) != 0) {
         continue;
       }

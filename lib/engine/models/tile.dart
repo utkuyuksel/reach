@@ -9,7 +9,11 @@
 ///  * [locked]: untraceable until any orthogonally adjacent group clears —
 ///    a sequencing puzzle layered on top of the sums. Placement is validated
 ///    at generation time so a freeing order always exists.
-enum TileModifier { none, veiled, gold, locked }
+///  * [wild]: shows ✦ instead of a number and absorbs whatever the trace is
+///    missing (≥1). Internally it KEEPS its construction value, so the
+///    partition solver / hints / safe-rewind stay exact; only the player-
+///    facing clear rule is relaxed. Max one per board.
+enum TileModifier { none, veiled, gold, locked, wild }
 
 /// An immutable number tile occupying a single grid cell.
 ///

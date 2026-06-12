@@ -107,6 +107,7 @@ class GameController extends Notifier<GameSession?> {
       gold: _goldFor(cleared, isFinale, puzzle.seed),
       veiled: _veiledFor(cleared, puzzle.seed),
       locked: _lockedFor(cleared),
+      wild: _wildFor(cleared, isFinale, puzzle.seed),
     );
     startWithPuzzle(puzzle, GameMode.zen, isFinale: isFinale);
   }
@@ -135,6 +136,14 @@ class GameController extends Notifier<GameSession?> {
     final chapter = cleared ~/ Difficulty.clearsPerLevel + 1;
     if (chapter < 4) return 0;
     return chapter >= 6 ? 2 : 1;
+  }
+
+  /// The wildcard arrives last (chapter 7+): every finale, and roughly every
+  /// other board in between — one relief valve per board, never two.
+  int _wildFor(int cleared, bool isFinale, int seed) {
+    final chapter = cleared ~/ Difficulty.clearsPerLevel + 1;
+    if (chapter < 7) return 0;
+    return (isFinale || seed % 2 == 0) ? 1 : 0;
   }
 
   void nextZen() => startZen();

@@ -401,7 +401,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           children: [
             _DetailPill(
               icon: Icons.bolt_rounded,
-              text: 'CH $chapter',
+              text: 'LV $chapter',
               palette: palette,
             ),
             if (zen.chain >= 2) ...[

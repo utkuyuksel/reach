@@ -52,7 +52,8 @@ class GameState {
     if (status == GameStatus.won) return false;
     if (path.length < 2) return false;
     final seen = <int>{};
-    var sum = 0;
+    var sum = 0; // non-wild values only
+    var wilds = 0;
     for (var i = 0; i < path.length; i++) {
       final cell = path[i];
       if (!seen.add(cell)) return false; // repeated cell
@@ -62,10 +63,15 @@ class GameState {
       if (i > 0 && !grid.areOrthogonalNeighbors(path[i - 1], cell)) {
         return false; // not a connected trace
       }
-      sum += tile.value;
+      if (tile.modifier == TileModifier.wild) {
+        wilds++;
+      } else {
+        sum += tile.value;
+      }
       if (sum > target) return false; // positive values — can't recover
     }
-    return sum == target;
+    // A wild absorbs whatever is missing (at least 1 each).
+    return wilds == 0 ? sum == target : sum <= target - wilds;
   }
 
   /// Clear [path] if it is a valid group; otherwise return this unchanged
